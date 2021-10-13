@@ -3,24 +3,35 @@ rm(list=ls())
 library("beepr")
 setwd("C:/Temp/")
 
-#### 設定下單程式位置 ####
+#### 設定額外函式位置 ####
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
+source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
 
 Product <-"MXFJ1"
 Price <-0
-BorS <- ""
+BorS <- "" #買(B)或賣(S)
+Daytrade <-"1" #設定當沖(否1是0)
+
 DateFolder <- ""
 result <- "  "
 Qty <-1
 gear <-0
-Stop_portfolio <- 10 #停利
-Stop_loss <- 0 #停損
+Stop_portfolio <- 10 #停利價差
+default.enable_stopPORTFOLIO <- 15
+# Stop_loss <- 0 #停損
 PCL <- 0 #多空代號 1 -1
 Max.DDM <- 5
 Price.buyin <- 0
 simu <-TRUE
-safe.Close <- TRUE
-auto.stopPortfolio <- FALSE
+Auto.positionCLOSE <-FALSE
+
+safe.Close <- TRUE #TRUE表使用緊急平倉來平倉
+Stop_portfolio.type <-c("(1)MDD", "(2)RsiOVER_SB", "(3)Bolling")
+Stop_portfolio.code <-1
+# names(Stop_portfolio.type) <- c("7", "77")
+Stop_loss.type <-c("(1)RsiREVERSAL", "(2)ResearchLINE", "(3)ExtremeLINE", "(4)Bolling", "(5)PolarSTAR")
+Stop_loss.code <-1
+next.step <- ""
 
 get.hour <- as.numeric(format(Sys.time(), "%H"))
 get.sysDate <-  Sys.Date()
@@ -35,8 +46,13 @@ data.path <- paste0("C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAP
                     , Product, "/"
                     , Product.file)
 msg.path <- paste0("C:/Temp/")
+price.path <- paste0("C:/Temp/msg/")
 
+enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD停利
+enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI超買超賣停利
+enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #布林通道停利
 
+#MAIN#
 #### 緊急平倉 ####
 ClosePositionAll<-function(){
   #system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
@@ -80,15 +96,18 @@ Place.OrderLMT<-function()
 {
 
   #Qty <-1  
+  order.cmd <- ""
   
   if (!simu){
-  # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
-  OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",'1'),stdout = TRUE)
-  print(paste("[下單觸發] 限價委託單 :", Product,BorS,Price,Qty,'LMT',"ROD",'1'))
-  # 回傳委託序號
-  return(OrderNo)
+            # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
+            order.cmd <-paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade)
+            # OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade),stdout = TRUE)
+            OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
+            print(paste("[下單觸發] 限價委託單 :", OrderNo, " | ",order.cmd))
+            # 回傳委託序號
+            return(OrderNo)
   }else{
-    print(paste("[模擬下單觸發] 限價委託單 :", Product,BorS,Price,Qty,'LMT',"ROD",'1'))
+    print(paste("[模擬下單觸發] 限價委託單 :",order.cmd))
   }
 }
 
@@ -97,15 +116,17 @@ Place.OrderMKT<-function()
 {
 
   #Qty <-1  
+  order.cmd <- ""
   
   if (!simu){
-  # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
-  OrderNo <- system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,'0',Qty,'MKT',"IOC",'1'),stdout = TRUE)
-  print(paste("[下單觸發] 市價委託單 :", Product,BorS,Price,Qty,'LMT',"ROD",'1'))
-  # 回傳委託序號
-  return(OrderNo)
+            # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
+            order.cmd <- paste(Product,BorS,'0',Qty,'MKT',"IOC", Daytrade)
+            OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
+            print(paste("[下單觸發] 市價委託單 :", OrderNo, "|", order.cmd))
+            # 回傳委託序號
+            return(OrderNo)
   }else{
-    print(paste("[模擬下單觸發] 市價委託單 :", Product,BorS,Price,Qty,'LMT',"ROD",'1'))
+    print(paste("[模擬下單觸發] 市價委託單 :",order.cmd))
   }
 }
 
@@ -137,173 +158,341 @@ if.safeClose <-function(bs=NULL)
     result <- ClosePositionAll()             
   }  
 }
+# 
 
-###
-#### (建倉)平均法 ####
-Position.create<-function(bs=NULL)
+#### (建倉)多重策略 ####
+Position.multi.create<-function()
 {
   
-  BorS <-bs
   for.LONG <- "B"
   for.SHORT <- "S"
-  #設定訊息檔案路徑
-  avg_price_msg <- "_avg_price.csv"
-  avg_price_path <- paste0(msg.path, avg_price_msg)
-  # #歸零
-  # unlink(avg_price_path)
-  # sleep(0.25)
-
+  msg.North.start <- -1
+  msg.South.start <- 1
+  local.msg <-""
+  action <- as.numeric(readline("建倉條件[RSI.Switch(1)極星(2)] :"))
+  cond.enable <-FALSE
+  
   while(TRUE)
   {
     
-    get.file <-file.exists(avg_price_path)
-    print(paste("get.file :", get.file))   
-    if.price.enable <-FALSE
-    if.exist <-FALSE
-
-    if (get.file)
+    #讀取現價  
+    # Price <- extra.data(name="CL")  
+    Price <- as.numeric(Price.current())
+    #讀取建倉條件
+    #RSI法
+    if(action ==1 && !cond.enable)
     {
-      
-      avg.Price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", avg_price_path), stdout = TRUE))
-      Price <- as.numeric(Price.current())
-      
-      #檢查是否開始待命建倉
-      if(BorS ==for.LONG && Price <avg.Price)
-      {
-        beep(sound = 2)
-        if.price.enable <-TRUE
-        print(paste("[設定] 啟動多頭建倉監控價位 :", Price))  
-      }
-      
-      if(BorS ==for.SHORT && Price >avg.Price)
-      {
-        beep(sound = 2)
-        if.price.enable <-TRUE
-        print(paste("[設定] 啟動空頭建倉監控價位 :", Price))  
-      }
-      
-      #待命建倉
-      while(if.price.enable)
-      {
-        Price <- as.numeric(Price.current())
-        local.msg <-"待命中"
-        
-        if((BorS ==for.LONG && Price >avg.Price) ||
-           (BorS ==for.SHORT && Price <avg.Price) )
-        {
-            BorS <- ifelse(BorS ==for.LONG, "B", "S")
-            Price <- Price.current()
-            result <- Place.OrderLMT()
-            beep(sound = 8)
-            Price.buyin <- as.numeric(Price)
-            PCL <- ifelse(BorS ==for.LONG, 1, -1)
-            if.price.enable <-FALSE
-            if.exist <-TRUE
-            local.msg <- "執行多頭建倉"
-        } 
-        
-        #
-        print(paste("[待命中] :" 
-                    , Price.curr, "<",avg.Price,">", local.msg))
-        Sys.sleep(0.20) 
-      }
+      polar_star_switch <-extra.data(name="polar_star_switch")
+      enable.north.star <-(polar_star_switch <0)
+      enable.south.star <-(polar_star_switch >0)
+      # price.OP <-extra.data(name="OP")
+      # price.op.ma <-extra.data(name="op_ma")
+      # 
+      # price.RSI <-extra.data(name="RSI")
+      # price.RSI_PRE <-extra.data(name="RSI_PRE")
+      # price.RSI_MA5 <-extra.data(name="RSI_MA5")
+      # price.BSRate <-extra.data(name="BSRate")
+      # price.BSRateDiff <-extra.data(name="BSRateDiff")
+      # 
+      # enable.north.star <-  price.RSI <0 &&
+      #                       price.RSI_PRE >0 &&
+      #                       price.RSI_MA5 >0 &&
+      #                       price.op.ma >0 &&
+      #                       Price -price.OP <0
+      # enable.south.star <-  price.RSI >0 &&
+      #                       price.RSI_PRE <0 &&
+      #                       price.RSI_MA5 <0 &&
+      #                       price.op.ma <0 &&
+      #                       Price -price.OP >0
+      cond.enable <-(enable.north.star || enable.south.star)
+      local.msg <- paste("<RSI.Switch建倉法>", price.RSI)
     }
     
-    if(if.exist){break}
+    #極星法
+    if(action ==2 && !cond.enable)
+    {
+      local.msg <- "<極星建倉法>"
+       #極星類型
+      code.polar_star <- extra.data(name="ploar_star")
+      #極星建倉點
+      price.polar_star <- extra.data(name="ploar_star_price")
+      
+      enable.north.star <- (code.polar_star ==msg.North.start &&
+                              Price >price.polar_star)
+      enable.south.star <- (code.polar_star ==msg.South.start &&
+                              Price <price.polar_star)
+      cond.enable <-(enable.north.star || enable.south.star)
+    }
+    
+    #判斷是否啟動建倉
+    if (cond.enable)
+    {    
+ 
+      # 設定建倉
+        if (enable.north.star){BorS =for.SHORT} 
+        if (enable.south.star){BorS =for.LONG} 
+      
+        #執行建倉
+        # BorS <- "B"
+        Price <- Price.current()
+        result <- Place.OrderLMT()
+        beep(sound = 2)
+        Price.buyin <- as.numeric(Price)
+        PCL <- ifelse(BorS ==for.LONG, msg.South.start, msg.North.start)
+        print(paste("[動作] 執行建倉價位 :", Price, BorS))
+        
+        if(Auto.positionCLOSE)
+        {
+          Sys.sleep(1)
+          beep(sound = 2)
+          Position.stop()
+          Price.buyin <-0
+          PCL <-0
+        }  
+        break
+
+    }
+    
+    #
+    print(paste("[待命中] :", Price, local.msg))
+    Sys.sleep(0.20) 
+    
   }  
   
-  #歸零
-  unlink(avg_price_path)
-
 }
 
 #### (平倉)動態停損停利 ####
-Position.stop<-function(pr=NULL, pcl=NULL)
+Position.stop<-function()
 {
-  print(paste("pr :", pr))
-  print(paste("pcl :", pcl))
+
+  enable.ddm <- FALSE
+  for.LONG <- 1
+  for.SHORT <- -1
+  Price.diff <-0 #漲跌幅
+  Price.ddm <-0  #動態停利價
+  Stop_loss.price <-0
+  ddm.Ratio <-0
+
+  Price.in <-Price.buyin 
+  # p.mode.switch <- p.mode
+
+  REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
+  CHECK.ClosePOSITION <- c(rep(FALSE, 9))
   
-  if (!is.null(pr) && !is.null(pcl) &&
-      (pr !=0 && pcl !=0))
+  while(TRUE)
   {
     
-    enable.ddm <- FALSE
-    for.LONG <- 1
-    for.SHORT <- -1
-    Price.in <- pr #建倉價
-    PCL <- pcl     #多空編號
-    Price.diff <-0 #漲跌幅
-    Price.ddm <-0  #動態停利價
-    ddm.Ratio <-0
+    # #查詢是否有部位
+    # get.onOpen <- length(QueryOnOpen())
+    # 
+    # if (get.onOpen ==0)
+    # {
+    #   print("[回報] 倉位數量應大於零，請確認")
+    #   break
+    # }
     
-    while(TRUE)
+    #目前價位
+    Price.curr <- as.numeric(Price.current())
+    # Price.curr <- extra.data(name="CL")
+    Price.open <- extra.data(name="OP")
+    
+    #計算價格變動
+    Price.diff <- Price.curr -Price.in
+
+    #檢查是否達到動態停利條件
+    #已設定動態停利且還沒啟動即執行
+    if(Max.DDM !=0 && !enable.ddm)
+    {
+      if((PCL ==for.LONG && Price.diff >=Stop_portfolio) ||
+         (PCL ==for.LONG && Price.curr -Price.open >=default.enable_stopPORTFOLIO) ||
+         (PCL ==for.SHORT && Price.diff <=Stop_portfolio*-1) ||
+         (PCL ==for.SHORT && Price.curr -Price.open <=default.enable_stopPORTFOLIO*-1))
+      {
+        enable.ddm <- TRUE #啟動動態停損
+        Price.ddm <- Price.curr #設定動態停利計算起始點
+        print(paste("[設定] 啟動動態停利，價位 :", Price.curr))
+        beep(sound = 5)
+      }
+    }
+    
+    #檢查是否啟動停損
+    if ( Stop_loss.code ==1)
     {
       
-      #查詢是否有部位
-      get.onOpen <- length(QueryOnOpen())
-      if (get.onOpen ==0)
-      {
-        print("[回報] 部位數量變動為零，請確認")
-        break
-      }
+      #RSI停損
+      # Stop_loss.price <-0
+      operator <- as.character(Stop_loss.code)
       
-      #目前價位
-      Price.curr <- as.numeric(Price.current())
-      #計算價格變動
-      Price.diff <- Price.curr -Price.in
+      switch(operator,
+             
+             # RSI_RESVERSAL
+             "1" ={
+                     Stop_loss.price.RSI <-extra.data(name="RSI")
+                     Stop_loss.price.RSI_MA5 <-extra.data(name="RSI_MA5")
+                     
+                     if(
+                       PCL ==for.LONG && 
+                       (Stop_loss.price.RSI <0 &&
+                        Price.curr -Price.in <=default.enable_stopPORTFOLIO*-1 &&
+                        # Stop_loss.price.RSI_MA5 <0 &&
+                        Stop_loss.price.RSI <Stop_loss.price.RSI_MA5*0.5)
+                     )
+                       {
+                         if.safeClose(bs="MS") 
+                         beep(sound = 7)
+                         print(paste("[動作] 執行多頭停損價位 :", Price.curr))
+                         break #回到主MENU
+                       }
+                     if(
+                       PCL ==for.SHORT && 
+                       (Stop_loss.price.RSI >0 &&
+                        Price.curr -Price.in >=default.enable_stopPORTFOLIO &&
+                         # Stop_loss.price.RSI_MA5 >0 &&
+                        Stop_loss.price.RSI >Stop_loss.price.RSI_MA5*0.5)
+                     )
+                     {
+                         if.safeClose(bs="MB")
+                         beep(sound = 7)
+                         print(paste("[動作] 執行空頭停損價位 :", Price.curr))
+                         break #回到主MENU
+                     }
+                 }            
+             )
+      
 
-      #檢查是否達到動態停利條件
-      #已設定動態停利且還沒啟動即執行
-      if(Max.DDM !=0 && !enable.ddm)
-      {
-        if((PCL ==for.LONG && Price.diff >=Stop_portfolio) ||
-           (PCL ==for.SHORT && Price.diff <=Stop_portfolio*-1))
-        {
-          enable.ddm <- TRUE #啟動動態停損
-          Price.ddm <- Price.curr
-          print(paste("[設定] 啟動動態停利價位 :", Price.curr))
-          beep(sound = 2)
-        }
-      }
       
-      #檢查是否停損
-      if ( Stop_loss !=0)
+    }
+    
+    if ( Stop_loss.code >=2 && Stop_loss.code <=5)
+    {
+      
+      #停損價位
+      # Stop_loss.price <-0
+      operator <- as.character(Stop_loss.code)
+      
+      switch(operator,
+
+             # Research_Line
+             "2" ={
+                    if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="Research_Line_lower")} 
+                    if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="Research_Line_Upper")} 
+                  },
+             # extremes_Line
+             "3" ={
+                     if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="extremes_Line_lower")} 
+                     if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="extremes_Line_Upper")} 
+                   },
+             # Bolling
+             "4" ={
+                     if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="B_LO")} 
+                     if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="B_UP")} 
+                   },
+             # PolarSTAR
+             "5" ={
+                    Stop_loss.price <-extra.data(name="ploar_star_stopLoss ")
+                   }
+             )
+      
+      if(PCL ==for.LONG && Price.curr <=Stop_loss.price)
       {
-        if(PCL ==for.LONG && Price.diff <=Stop_loss*-1)
-        {
-          if.safeClose(bs="MS") 
-          beep(sound = 8)
-          print(paste("[動作] 執行多頭停損價位 :", Price.curr))
-          break #回到主MENU
-        }
-        if(PCL ==for.SHORT && Price.diff >=Stop_loss)
-        {
-          if.safeClose(bs="MB")
-          beep(sound = 8)
-          print(paste("[動作] 執行空頭停損價位 :", Price.curr))
-          break #回到主MENU
-        }
-            # {
-            # result <- ClosePositionAll()
-            # print(paste("[動作] 執行停損價位 :", Price.curr))
-            # break #回到主MENU
-            # } 
+        if.safeClose(bs="MS") 
+        beep(sound = 7)
+        print(paste("[動作] 執行多頭停損價位 :", Price.curr))
+        break #回到主MENU
       }
-      #else{
-      #檢查是否停利平倉
-      ##無開啟回檔檢查(無動態停利)
-      if(Max.DDM ==0) 
+      if(PCL ==for.SHORT && Price.curr >=Stop_loss.price)
       {
+        if.safeClose(bs="MB")
+        beep(sound = 7)
+        print(paste("[動作] 執行空頭停損價位 :", Price.curr))
+        break #回到主MENU
+      }
+
+    }
+
+    #檢查是否停利平倉及種類
+    #編號1為預設之MDD因此為TRUE
+    Stop_PORTFOLIO.price.RSI <-extra.data(name="RSI")
+    RSI.OverBOUGHT <- 20
+    RSI.OverSOLD <- -20
+    BollingPATH.UPPER <-extra.data(name="B_UP")
+    BollingPATH.LOWER <-extra.data(name="B_LO")
+
+    if(file.exists(enable.onlyMDD.path))
+    {
+      unlink(enable.onlyMDD.path)
+      # p.mode.switch =1
+      REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
+      CHECK.ClosePOSITION <- c(rep(FALSE, 9))
+      print(paste("[設定] 切換為預設onlyMDD停利，價位 :", Price.curr))
+      beep(sound = 2)
+    }
+    if(file.exists(enable.RSI.TrendADDED.path))
+    {
+        unlink(enable.RSI.TrendADDED.path)
+        # p.mode.switch <-2
+        REGISTER.ClosePOSITION[2] <-TRUE
+        print(paste("[設定] 附加RSI.TrendADDED停利，價位 :", Price.curr))
+        beep(sound = 2)
+    }
+    if(file.exists(enable.Bolling.path))
+    {
+        unlink(enable.Bolling.path)
+        # p.mode.switch <-3
+        REGISTER.ClosePOSITION[3] <-TRUE
+        print(paste("[設定] 附加BollingPATH.ADDED停利，價位 :", Price.curr))
+        beep(sound = 2)
+    }
+    
+    #預設值，MDD停利
+    # if(p.mode.switch ==1)
+    # {
+    #   MDD.ClosePOSITION <-TRUE #預設判斷MDD
+    # } 
+    # 附加，RSI超買超賣停利
+    if(REGISTER.ClosePOSITION[2]) #考慮RSI
+    {
+      if(
+        (PCL ==for.LONG && (Stop_PORTFOLIO.price.RSI >RSI.OverBOUGHT))
+        ||
+        (PCL ==for.SHORT && (Stop_PORTFOLIO.price.RSI <RSI.OverSOLD))
+      )
+      {
+        CHECK.ClosePOSITION[2] <-TRUE
+      }
+    }
+    #附加，布林通道停利
+    if(REGISTER.ClosePOSITION[3]) #考慮布林通道
+    {
+      if(
+        (PCL ==for.LONG && (Price.curr >BollingPATH.UPPER))
+        ||
+        (PCL ==for.SHORT && (Price.curr <BollingPATH.LOWER))
+      )
+      {
+        CHECK.ClosePOSITION[3] <-TRUE
+      }
+    }
+    
+    #附加條件總檢查
+    EXTRA.ClosePOSITION <- TRUE
+    check_series <- (REGISTER.ClosePOSITION ==CHECK.ClosePOSITION)
+    check_leng <- length(check_series)
+    mark_REGISTER <- 0
+    mark_CHECK <- 0
+    for(miu in 1:check_leng)
+    {
+      if(check_series[miu] ==FALSE){EXTRA.ClosePOSITION <-FALSE}
+      if(REGISTER.ClosePOSITION[miu] ==TRUE){mark_REGISTER <-mark_REGISTER+1}
+      if(CHECK.ClosePOSITION[miu]    ==TRUE){mark_CHECK <-mark_CHECK+1}
+    }
+
+    ##無開啟回檔檢查(無動態停利)
+    if(Max.DDM ==0) 
+    {
         if(PCL ==for.LONG && Price.diff >=Stop_portfolio) #做多平倉
         {
-          # if (!safe.Close)
-          # {
-          #   BorS <- "S"
-          #   Price <- Price.current()
-          #   result <- Place.OrderLMT()              
-          # }else{
-          #   result <- ClosePositionAll()             
-          # }
+          
           if.safeClose(bs="S")
           beep(sound = 8)
           print(paste("[動作] 執行多頭停利價位 :", Price.curr))
@@ -311,104 +500,80 @@ Position.stop<-function(pr=NULL, pcl=NULL)
         }
         if(PCL ==for.SHORT && Price.diff <=Stop_portfolio*-1) #做空平倉
         {
-          # BorS <- "B"
-          # Price <- Price.current()
-          # result <- Place.OrderLMT()
-          #result <- ClosePositionAll()
+          
           if.safeClose(bs="B")
           beep(sound = 8)
           print(paste("[動作] 執行空頭停利價位 :", Price.curr))
           break
-        }          
-      }
-        
-      ##已開啟動態停利
-      if(enable.ddm)
+        }         
+    }
+
+    ##已開啟動態停利
+    if(enable.ddm)
+    {
+      #回檔加成係數
+      ddm.Ratio <-0
+      #創新高
+      if((PCL ==for.LONG && Price.curr >Price.ddm) ||
+         (PCL ==for.SHORT && Price.curr <Price.ddm))
       {
-        #創新高
-        if((PCL ==for.LONG && Price.curr >Price.ddm) ||
-           (PCL ==for.SHORT && Price.curr <Price.ddm))
+        
+        CHECK.ClosePOSITION[1] <-TRUE
+        
+        Price.ddm <-Price.curr
+        beep(sound = 2)
+        print(paste("[設定] 更新停利點價位 :", Price.ddm))
+        
+        Stop_portfolio_RatioPRICE_DIFF <-(Stop_portfolio +Max.DDM)
+        #以回檔點數換算是否更新DDM動態加成點數
+        if(PCL ==for.LONG && Price.ddm -Price.in >=Stop_portfolio_RatioPRICE_DIFF)
         {
-          Price.ddm <-Price.curr
+          ddm.Ratio = round(abs((Price.curr 
+                                 -(Price.in +Stop_portfolio))/Max.DDM)) *-1
           beep(sound = 2)
-          print(paste("[設定] 更新停利點價位 :", Price.ddm))
-          
-          # ddm.Ratio <-0
-          Stop_portfolio_RatioPRICE_DIFF <-(Stop_portfolio +Max.DDM)
-          #以回跌點數換算是否更新DDM動態加成點數
-          if(PCL ==for.LONG && Price.ddm -Price.in >=Stop_portfolio_RatioPRICE_DIFF)
-          {
-            ddm.Ratio = floor(abs((Price.curr 
-                                   -(Price.in +Stop_portfolio))/Max.DDM)) *-1
-            beep(sound = 2)
-            print(paste("[設定] 更新停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-          }
-          if(PCL ==for.SHORT && Price.ddm -Price.in <=Stop_portfolio_RatioPRICE_DIFF*-1 )
-          {
-            ddm.Ratio = floor(abs((Price.curr 
-                                   -(Price.in -Stop_portfolio))/Max.DDM)) *-1
-            beep(sound = 2)
-            print(paste("[設定] 更新停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-          }
-          
+          print(paste("[設定] 更新多倉停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
         }
-        else{ #自新高回跌
-              # ddm.Ratio <-0
-              # Stop_portfolio_RatioPRICE_DIFF <-(Stop_portfolio +Max.DDM)
-              # #以回跌點數換算是否更新DDM動態加成點數
-              # if(PCL ==for.LONG && Price.ddm -Price.in >=Stop_portfolio_RatioPRICE_DIFF)
-              # {
-              #   ddm.Ratio = floor(abs((Price.curr 
-              #                           -(Price.in +Stop_portfolio))/Max.DDM))
-              #   beep(sound = 2)
-              #   print(paste("[設定] 更新停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-              # }
-              # if(PCL ==for.SHORT && Price.ddm -Price.in <=Stop_portfolio_RatioPRICE_DIFF*-1 )
-              # {
-              #   ddm.Ratio = floor(abs((Price.curr 
-              #                           -(Price.in -Stop_portfolio))/Max.DDM))
-              #   beep(sound = 2)
-              #   print(paste("[設定] 更新停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-              # }
-              
-              #檢查停利條件
-              if(PCL ==for.LONG  && Price.curr -Price.ddm <= (Max.DDM+ddm.Ratio)*-1)
+        if(PCL ==for.SHORT && Price.ddm -Price.in <=Stop_portfolio_RatioPRICE_DIFF*-1 )
+        {
+          ddm.Ratio = round(abs((Price.curr 
+                                 -(Price.in -Stop_portfolio))/Max.DDM)) *-1
+          beep(sound = 2)
+          print(paste("[設定] 更新空倉停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
+        }
+        
+      }
+      #回檔
+      else{ 
+            #檢查停利條件
+            if(EXTRA.ClosePOSITION)
+            {
+              if((PCL ==for.LONG  && Price.curr -Price.ddm <= (Max.DDM+ddm.Ratio)*-1))
               {
-                # BorS <- "S"
-                # Price <- Price.current()
-                # result <- Place.OrderLMT()
-                #result <- ClosePositionAll()
                 if.safeClose(bs="S")
                 beep(sound = 8)
-                print(paste("[動作] 執行多頭停利價位 :", Price.curr))
+                print(paste("[動作] 執行多頭停利價位 :", Price.curr, Price.diff))
                 break
               }
               if(PCL ==for.SHORT && Price.curr -Price.ddm >= (Max.DDM+ddm.Ratio))
               {
-                # BorS <- "B"
-                # Price <- Price.current()
-                # result <- Place.OrderLMT()
-                #result <- ClosePositionAll()
                 if.safeClose(bs="B")
                 beep(sound = 8)
-                print(paste("[動作] 執行空頭停利價位 :", Price.curr))
+                print(paste("[動作] 執行空頭停利價位 :", Price.curr, Price.diff))
                 break
-              }
-        
-          #result <- ClosePositionAll()
-          # break #回到主MENU                
-        }
-      }
-        
-      #}
-      #目前/買進價位/停利/停損/價差 
-      print(paste("[待命中] :"
-                  , Price.curr, "<",Price.in,">", Stop_portfolio, Stop_loss, Price.diff))
-      Sys.sleep(0.20)      
+              }             
+            }
+          }
     }
-    
+
+    #價差/目前/買進價位/停利/停損/回檔/回檔調整係數/ 
+    print(paste("[待命中] :"
+                , Price.diff, "<", Price.curr, Price.in,">", Stop_portfolio, Stop_loss.price
+                , Max.DDM, ddm.Ratio, PCL, Stop_PORTFOLIO.price.RSI
+                , EXTRA.ClosePOSITION, mark_REGISTER, mark_CHECK))
+
+    Sys.sleep(0.20)      
   }
-  
+
 }
 
 ### 接收XQ訊號執行交易 ###
@@ -492,28 +657,30 @@ remoted.ByMsg <-function()
 
 repeat
 {
-  
-  # output <- paste0("[", format(Sys.time(), "%X"), "] 報價 ", Price.current())
-  # print(output)
+
   Price <- Price.current()
   
   print(paste0("DataTIME      : ", date.format)) 
   print(paste0("Product       : ", Product)) 
   print(paste0("Price         : ", Price)) 
   print(paste0("Quantity      : ", Qty)) 
-  print(paste0("Gear          : ", gear)) 
   print(paste0("BorS          : ", BorS)) 
   print(paste0("StopPORTFOLIO : ", Stop_portfolio)) 
-  print(paste0("StopLOSS      : ", Stop_loss)) 
-  print(paste0("Max.DDM       : ", Max.DDM)) 
+  print(paste0("default.S.P   : ", default.enable_stopPORTFOLIO))
+  print(paste0("Auto.pos.CLOSE: ", Auto.positionCLOSE))
+  print(paste0("AUTO.StopPORT : ", Stop_portfolio.type[Stop_portfolio.code]))
+  print(paste0("AUTO.StopLOSS : ", Stop_loss.type[Stop_loss.code])) 
+  print(paste0("Max.DDM       : ", Max.DDM))
+  print(paste0("DayTRADE      : ", Daytrade))
+  print(paste0("Price.buyin   : ", Price.buyin))
+  print(paste0("PCL           : ", PCL))
   print(paste0("Simulation    : ", simu))  
   print(" ")
-  
-  print("(CL)CloseAllPOSITION")
-  print("(CA)CancelAllOrder")
+
+  # print("(CL)CloseAllPOSITION")
+  # print("(CA)CancelAllOrder")
   print("(QR)QueryRight")
   print("(CP)ChangePRodid")
-  print("(CL)CloseAllPOSITION")
   print("(QA)QueryAllOrder")
   print("(QO)QueryOnOpen")
   print("(QU)QueryUnfinished")
@@ -524,11 +691,25 @@ repeat
   print("(Q)uantity bundle")
   print("(BS)Buy|Sell bundle")
   print("(RBM)remoted.ByMsg")
-  print("(SPL)STOP portfolio/loss")
+  print("(SPT)StopPORT.TYPE")
+  print("(SLT)StopLOSS.TYPE")
+  print("(DT)_switch_DayTRADE")  
+  print("(PRB)Price.buyin")
+  print("(PCL)PCL")
+  print("(EOMD)enable.onlyMDD")
+  print("(ERTA)enable.RsiTREND.ADDED")
+  print("(EBPA)enable.BollingPATH.ADDED")
+  print("(APC)_switch_Auto.pos.CLOSE")
   print("(SS)_switch_Simulation") 
-  
-  action <- readline("[COMMAND] :")
-  
+   
+  if(next.step =="")
+  {
+    action <- readline("[COMMAND] :")
+  }else{
+    action <-next.step
+    next.step <-""
+  }
+ 
   if (action != "")
   {
       switch(action,
@@ -547,39 +728,86 @@ repeat
                 },
             OL ={result <- Place.OrderLMT()},
             "4"  ={
-                  #Qty <-1 
-                  BorS <- "B"
-                  Price <- Price.current()
-                  result <- Place.OrderLMT()
-                  Price.buyin <- as.numeric(Price)
-                  PCL <- 1
+                    #Qty <-1 
+                    BorS <- "B"
+                    Price <- Price.current()
+                    result <- Place.OrderLMT()
+                    Price.buyin <- as.numeric(Price)
+                    PCL <- 1
+                    if(Auto.positionCLOSE)
+                    {
+                      next.step <- "7"
+                    }
                   },
-            "1"  ={Position.create(bs="B")},
             "2"  ={
-                  #Qty <-1 
-                  BorS <- "B"
-                  Price <- Price.current()
-                  result <- Place.OrderMKT()
-                  Price.buyin <- as.numeric(Price)
-                  PCL <- 1
+                    #Qty <-1 
+                    BorS <- "B"
+                    Price <- Price.current()
+                    result <- Place.OrderMKT()
+                    Price.buyin <- as.numeric(Price)
+                    PCL <- 1
                   },
             "6"  ={
-                  #Qty <-1
-                  BorS <- "S"
-                  Price <- Price.current()
-                  result <- Place.OrderLMT()
-                  Price.buyin <- as.numeric(Price)
-                  PCL <- -1
+                    #Qty <-1
+                    BorS <- "S"
+                    Price <- Price.current()
+                    result <- Place.OrderLMT()
+                    Price.buyin <- as.numeric(Price)
+                    PCL <- -1
+                    if(Auto.positionCLOSE)
+                    {
+                      next.step <- "7"
+                    }
                  },
-            "3"  ={Position.create(bs="S")},
             "8"  ={
-              #Qty <-1
-              BorS <- "S"
-              Price <- Price.current()
-              result <- Place.OrderMKT()
-              Price.buyin <- as.numeric(Price)
-              PCL <- -1
-                 },
+                    #Qty <-1
+                    BorS <- "S"
+                    Price <- Price.current()
+                    result <- Place.OrderMKT()
+                    Price.buyin <- as.numeric(Price)
+                    PCL <- -1
+                },
+            # # 多重建倉法
+            "1" ={
+                    Position.multi.create()
+                    if(Auto.positionCLOSE)
+                    {
+                      next.step <- "7"
+                    }
+            },
+            # # 極星法建平倉
+            # "3" ={
+            #       Position.polar_star()
+            #       Price.buyin <-0
+            #       PCL <-0
+            #       },
+            # 停利停損>RSI超買超賣法
+            # "9"  ={
+            #         Position.stop(p.mode = 2)
+            #         Price.buyin <-0
+            #         PCL <-0
+            #       },
+            # 停利停損>回檔法
+            "7" ={
+                  Position.stop()
+                  Price.buyin <-0
+                  PCL <-0
+                  }, 
+            # "77" ={
+            #       Position.stop(p.mode = 77)
+            #       Price.buyin <-0
+            #       PCL <-0
+            #      }, 
+            # "++"  = if(as.numeric(Price) != 0)
+            #   { gear = gear +1
+            #   Price = as.character(as.numeric(Price)+gear)},
+            # "--"  = if(as.numeric(Price) != 0)
+            #   { gear = gear -1
+            #   Price = as.character(as.numeric(Price)+gear)},
+            # "+-"  = if(as.numeric(Price) != 0)
+            #   { gear = 0
+            #   Price = as.character(as.numeric(Price))},
+            
             OM ={result <- Place.OrderMKT()},
             P  ={Price <- readline("Price bundle :")
                   if (Price ==""){Price =Price.current()}
@@ -590,32 +818,48 @@ repeat
             SP ={Stop_portfolio <- readline("StopPORTFOLIO :")},
             SL ={Stop_loss <- readline("StopLOSS :")},
             RBM ={remoted.ByMsg()},
-            "9" ={remoted.ByMsg()},
-            SPL ={
-                    Position.stop(pr=Price.buyin, pcl=PCL)
-                    Price.buyin <-0
-                    PCL <-0
-                  }, #停利停損
-            "7" ={
-                    Position.stop(pr=Price.buyin, pcl=PCL)
-                    Price.buyin <-0
-                    PCL <-0
-                  }, #停利停損
+            PPS ={Position.polar_star()},
+            PMC ={Position.multi.create()},
             
+            DESP ={default.enable_stopPORTFOLIO <- as.numeric(readline("default.enable_stopPORTFOLIO bundle :"))},
+            
+            PRB ={Price.buyin <- as.numeric(readline("Price.buyin bundle :"))},
+            PCL ={PCL <- as.numeric(readline("PCL bundle(1/-1):"))},
+            APC ={
+                  if(Auto.positionCLOSE){Auto.positionCLOSE <-FALSE}
+                  else{Auto.positionCLOSE <-TRUE}
+                  },
             SS ={
                 if(simu){simu <-FALSE}
                 else{simu <-TRUE}
                  },
-            PC ={result <- Price.current()}, 
-            "++"  = if(as.numeric(Price) != 0)
-                      { gear = gear +1
-                        Price = as.character(as.numeric(Price)+gear)},
-            "--"  = if(as.numeric(Price) != 0)
-                      { gear = gear -1
-                        Price = as.character(as.numeric(Price)+gear)},
-            "+-"  = if(as.numeric(Price) != 0)
-                      { gear = 0
-                        Price = as.character(as.numeric(Price))},
+            DT ={
+                if(Daytrade =="0"){Daytrade <-"1"}
+                else{Daytrade <-"0"}
+                 },
+            SLT  ={
+                    Stop_loss.code <- as.numeric(readline("Stop_loss.type[(1)RsiREVER, (2)ResearchLINE, (3)ExtremeLINE, (4)Bolling, (5)PolarSTAR] :"))
+                    if (is.na(Stop_loss.code) ||
+                        Stop_loss.code <1 ||
+                        Stop_loss.code >5)
+                      {Stop_loss.code <-1}
+                  },
+            SPT  ={
+                    Stop_portfolio.code <- as.numeric(readline("Stop_loss.type[(1)MDD, (2)RsiOVER_SB] :"))
+                          if (is.na(Stop_portfolio.code) ||
+                              Stop_portfolio.code <1 ||
+                              Stop_portfolio.code >2)
+                             {Stop_portfolio.code <-1}
+                  },
+            EOMD ={
+                      file.create(enable.onlyMDD.path)
+                  },
+            ERTA ={
+                      file.create(enable.RSI.TrendADDED.path)
+                  },
+            EBPA ={
+                      file.create(enable.Bolling.path)
+                  },
             QQ ={break},
             
             print(paste0("Command is not correct. [", action, "]"))
@@ -625,6 +869,4 @@ repeat
   
   result <- ""
 }
-
-
 

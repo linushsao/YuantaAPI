@@ -2,13 +2,15 @@
 #### (建倉)多重策略 ####
 Position.multi.create<-function()
 {
-  
-  for.LONG <- "B"
-  for.SHORT <- "S"
+ 
+  for.LONG <- 1
+  for.SHORT <- -1 
+  Buyin <- "B"
+  Sellout <- "S"
   msg.North.start <- -1
   msg.South.start <- 1
   local.msg <-""
-  action <- as.numeric(readline("建倉條件[RSI.Switch(1)極星(2)] :"))
+  action <- as.numeric(readline("建倉條件[RSI.Switch(1)極星(2)均線(3)] :"))
   cond.enable <-FALSE
   
   while(TRUE)
@@ -33,6 +35,21 @@ Position.multi.create<-function()
     if(action ==2 && !cond.enable)
     {
       local.msg <- "<極星建倉法>"
+      
+      LongShort <- readline("(1)Long(2)Short :")
+      
+
+      enable.north.star <- (code.polar_star ==msg.North.start &&
+                              Price >price.polar_star)
+      enable.south.star <- (code.polar_star ==msg.South.start &&
+                              Price <price.polar_star)
+      cond.enable <-(enable.north.star || enable.south.star)
+    }
+
+    #均線法
+    if(action ==3 && !cond.enable)
+    {
+      local.msg <- "<均線建倉法>"
       #極星類型
       code.polar_star <- extra.data(name="ploar_star")
       #極星建倉點
@@ -43,15 +60,14 @@ Position.multi.create<-function()
       enable.south.star <- (code.polar_star ==msg.South.start &&
                               Price <price.polar_star)
       cond.enable <-(enable.north.star || enable.south.star)
-    }
-    
+    }   
     #判斷是否啟動建倉
     if (cond.enable)
     {    
       
       # 設定建倉
-      if (enable.north.star){BorS =for.SHORT} 
-      if (enable.south.star){BorS =for.LONG} 
+      if (enable.north.star){BorS =Sellout} 
+      if (enable.south.star){BorS =Buyin} 
       
       #執行建倉
       # BorS <- "B"
@@ -59,7 +75,7 @@ Position.multi.create<-function()
       result <- Place.OrderLMT()
       beep(sound = 5)
       Price.buyin <- as.numeric(Price)
-      PCL <- ifelse(BorS ==for.LONG, msg.South.start, msg.North.start)
+      PCL <- ifelse(BorS ==Buyin, msg.South.start, msg.North.start)
       print(paste("[動作] 執行建倉價位 :", Price, BorS))
       
       if(Auto.positionCLOSE)
@@ -91,11 +107,25 @@ Position.stop<-function()
   for.SHORT <- -1
   Price.diff <-0 #漲跌幅
   Price.ddm <-0  #動態停利價
-  Stop_loss.price <-0
+  # Stop_loss.price <-0
   ddm.Ratio <-0
   ddm.times <-0
+  ddm.times.lmited <-3
+  ddm.times.keepNOLoss <-0
+  ddm.times.keepNOLoss.price <-0
+  ddm.times.keepNOLoss.PREprice <-0
   stable.ddm.price <-0
   Price.in <-Price.buyin 
+  Price.reachLIMITED.times.Long <-0
+  Price.reachLIMITED.times.Short <-0
+  # Price.reachLIMITED.times.Limited <-2
+  Price.RECeiling.PRE <- 0
+  Price.REFloor.PRE   <- 0
+  Price.curr.PRE <-0
+  alarm_NoLOSS <- "  "
+  alarm_DDM <- "  "
+  alarm_SP <- "  "
+  
   # p.mode.switch <- p.mode
   
   REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
@@ -104,256 +134,118 @@ Position.stop<-function()
   while(TRUE)
   {
     
-    # #查詢是否有部位
-    # get.onOpen <- length(QueryOnOpen())
-    # 
-    # if (get.onOpen ==0)
-    # {
-    #   print("[回報] 倉位數量應大於零，請確認")
-    #   break
-    # }
-    
     #目前價位
     Price.curr <- as.numeric(Price.current())
     # Price.curr <- extra.data(name="CL")
-    Price.open <- extra.data(name="OP")
-    
+    # Price.open <- extra.data(name="OP")
+    # Price.high <- extra.data(name="HI")
+    # Price.low <- extra.data(name="LO")
+
     #計算價格變動
     Price.diff <- Price.curr -Price.in
-    
-    #檢查是否達到動態停利條件 
-    #已設定動態停利且還沒啟動即執行
-    # if(Max.DDM !=0 && !enable.ddm)
-    if(!enable.STABLE.Stop.PORT && !enable.ddm)
+ 
+    ##尋找天花板/地板支撐/壓力
+    ##第一次更新極值參數
+    # if((PCL ==for.LONG  && Price.RECeiling.PRE ==0) ||
+    #    (PCL ==for.SHORT && Price.REFloor.PRE ==0))
+    if(Price.RECeiling.PRE ==0 &&
+       Price.REFloor.PRE ==0)
     {
-      if((PCL ==for.LONG && Price.diff >=Stop_portfolio) ||
-         (PCL ==for.LONG && Price.curr -Price.open >=default.enable_stopPORTFOLIO) ||
-         (PCL ==for.SHORT && Price.diff <=Stop_portfolio*-1) ||
-         (PCL ==for.SHORT && Price.curr -Price.open <=default.enable_stopPORTFOLIO*-1))
-      {
-        enable.ddm <- TRUE #啟動動態停損
-        Price.ddm <- Price.curr #設定動態停利計算起始點
-        print(paste("[設定] 進入機槍射程範圍，價位 :", Price.curr))
-        beep(sound = 5)
-      }
+      # if(PCL ==for.LONG  && Price.RECeiling.PRE ==0)
+      Price.RECeiling.PRE <-Price.in
+      # if(PCL ==for.SHORT && Price.REFloor.PRE ==0)
+      Price.REFloor.PRE <-Price.in
+      
+    }else{
+          #檢查極值
+          # Price.RECeiling.diff <- Price.curr -Price.high
+          # Price.REFloor.diff   <- Price.curr -Price.low
+          Price.RECeiling.diff <- Price.curr -Price.RECeiling.PRE
+          Price.REFloor.diff   <- Price.curr -Price.REFloor.PRE
+          
+          #檢查天花板
+          # if(PCL ==for.LONG ) #
+          # {
+            #產生新的天花板
+            if(Price.curr >Price.RECeiling.PRE) 
+            {
+              Price.RECeiling.PRE <- Price.curr #記錄新的天花板
+              Price.reachLIMITED.times.Long <-0 #歸零<無法突破天花板之次數>
+              alarm_SP <- "^^"
+            } 
+            #再次回到同樣天花板
+            else if(Price.RECeiling.diff ==0 && 
+                    Price.curr.PRE !=Price.curr) #非重複
+            {
+              #更新<無法突破天花板>之次數
+              Price.reachLIMITED.times.Long <- Price.reachLIMITED.times.Long +1
+              alarm_SP <- paste0("^", Price.reachLIMITED.times.Long)
+            }
+            
+          # }
+          
+          #檢查地板
+          # if(PCL ==for.SHORT) #價位同下極值
+          # {
+            #產生新的地板
+            if(Price.curr <Price.REFloor.PRE) 
+            {
+              Price.REFloor.PRE <- Price.curr #記錄新的地板
+              Price.reachLIMITED.times.Short <-0 #歸零<無法突破地板之次數>
+              alarm_SP <- "VV"
+            } 
+            #再次回到同樣地板
+            else if(Price.curr ==Price.REFloor.PRE && 
+                    Price.curr.PRE !=Price.curr) #非重複
+            {
+              #更新<無法突破地板>之次數
+              Price.reachLIMITED.times.Short <- Price.reachLIMITED.times.Short +1
+              alarm_SP <- paste0("v", Price.reachLIMITED.times.Short)
+            }
+            
+          # }
+          
     }
     
-    #檢查是否啟動停損
-    if ( Stop_loss.code ==1)
-    {
-      
-      #RSI停損
-      # Stop_loss.price <-0
-      operator <- as.character(Stop_loss.code)
-      
-      switch(operator,
-             
-             # RSI_RESVERSAL+STABLE.StopPORT
-             "1" ={
-               Stop_loss.price.RSI <-extra.data(name="RSI")
-               Stop_loss.price.RSI_MA5 <-extra.data(name="RSI_MA5")
-               
-               if(
-                 PCL ==for.LONG && 
-                 (
-                   ( Stop_loss.price.RSI <0 &&
-                     Stop_loss.price.RSI_MA5 >0 &&
-                     abs(Stop_loss.price.RSI) >abs(Stop_loss.price.RSI_MA5) &&
-                     Price.curr -Price.in <=Stop_portfolio*-1 )
-                   ||
-                   (Price.curr -Price.in <=default.enable_stopPORTFOLIO*-1)
-                 )
-               )
-               {
-                 if.safeClose(bs="MS") 
-                 beep(sound = 7)
-                 print(paste("[動作] 執行多頭停損價位 :", Price.curr, "<", Price.in, operator))
-                 break #回到主MENU
-               }
-               if(
-                 PCL ==for.SHORT && 
-                 (
-                   ( Stop_loss.price.RSI >0 &&
-                     Stop_loss.price.RSI_MA5 <0 &&
-                     abs(Stop_loss.price.RSI) >abs(Stop_loss.price.RSI_MA5) &&
-                     Price.curr -Price.in >=Stop_portfolio )
-                   ||
-                   (Price.curr -Price.in >=default.enable_stopPORTFOLIO)
-                 )
-               )
-               {
-                 if.safeClose(bs="MB")
-                 beep(sound = 7)
-                 print(paste("[動作] 執行空頭停損價位 :", Price.curr, "<",Price.in, operator))
-                 break #回到主MENU
-               }
-             }            
-      )
-      
-      
-      
-    }
-    
-    if ( Stop_loss.code >=2 && Stop_loss.code <=5)
-    {
-      
-      #停損價位
-      # Stop_loss.price <-0
-      operator <- as.character(Stop_loss.code)
-      
-      switch(operator,
-             
-             # Research_Line
-             "2" ={
-               if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="Research_Line_lower")} 
-               if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="Research_Line_Upper")} 
-             },
-             # extremes_Line
-             "3" ={
-               if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="extremes_Line_lower")} 
-               if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="extremes_Line_Upper")} 
-             },
-             # Bolling
-             "4" ={
-               if(PCL ==for.LONG ){Stop_loss.price <-extra.data(name="B_LO")} 
-               if(PCL ==for.SHORT){Stop_loss.price <-extra.data(name="B_UP")} 
-             },
-             # PolarSTAR
-             "5" ={
-               Stop_loss.price <-extra.data(name="ploar_star_stopLoss ")
-             }
-      )
-      
-      if(PCL ==for.LONG && Price.curr <=Stop_loss.price)
-      {
-        if.safeClose(bs="MS") 
-        beep(sound = 7)
-        print(paste("[動作] 執行多頭停損價位 :", Price.curr))
-        break #回到主MENU
-      }
-      if(PCL ==for.SHORT && Price.curr >=Stop_loss.price)
-      {
-        if.safeClose(bs="MB")
-        beep(sound = 7)
-        print(paste("[動作] 執行空頭停損價位 :", Price.curr))
-        break #回到主MENU
-      }
-      
-    }
-    
+    #檢查停損
+
+     if(PCL ==for.LONG && 
+        (
+          (Price.curr -Price.in <=default.enable_stopPORTFOLIO*-1)
+         ||
+         (Price.curr -Price.in <=Stop_portfolio*-1 && 
+          Price.RECeiling.PRE <Price.in +BASE_portfolio)
+        )
+     )
+     {
+       if.safeClose(bs="MS") 
+       beep(sound = 7)
+       print(paste("[動作] 執行多頭停損價位 :", Price.curr, "<", Price.in))
+       break #回到主MENU
+     }
+     if(
+       PCL ==for.SHORT && 
+       (
+          (Price.curr -Price.in >=default.enable_stopPORTFOLIO)
+          ||
+          (Price.curr -Price.in >=Stop_portfolio && 
+           Price.REFloor.PRE >Price.in -BASE_portfolio)
+       )
+     )
+     {
+       if.safeClose(bs="MB")
+       beep(sound = 7)
+       print(paste("[動作] 執行空頭停損價位 :", Price.curr, "<",Price.in))
+       break #回到主MENU
+     }
+ 
     #是否開啟系統停利功能
     if(enable.defaultPORT.check)
     {
       
-      #檢查是否停利平倉及種類
-      #編號1為預設之MDD因此為TRUE
       Stop_PORTFOLIO.price.RSI <-extra.data(name="RSI")
-      RSI.OverBOUGHT <- 20
-      RSI.OverSOLD <- -20
-      BollingPATH.UPPER <-extra.data(name="B_UP")
-      BollingPATH.LOWER <-extra.data(name="B_LO")
-      
-      if(file.exists(enable.STABLE.Stop.PORT.path))
-      {
-        unlink(enable.STABLE.Stop.PORT.path)
-        # p.mode.switch =1
-        Max.DDM <- 0
-        enable.STABLE.Stop.PORT <-TRUE
-        REGISTER.ClosePOSITION <- c(rep(FALSE, 9))
-        CHECK.ClosePOSITION <- c(rep(FALSE, 9))
-        print(paste("[設定] 切換為預設固定停利，價位 :", Price.curr))
-        beep(sound = 2)
-      }
-      
-      if(file.exists(enable.onlyMDD.path))
-      {
-        unlink(enable.onlyMDD.path)
-        # p.mode.switch =1
-        Max.DDM <- 5
-        enable.STABLE.Stop.PORT <-FALSE
-        REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
-        CHECK.ClosePOSITION <- c(rep(FALSE, 9))
-        print(paste("[設定] 切換為動態(預設)onlyMDD停利，價位 :", Price.curr))
-        beep(sound = 2)
-      }
-      
-      if(file.exists(enable.RSI.TrendADDED.path))
-      {
-        unlink(enable.RSI.TrendADDED.path)
-        
-        if(enable.STABLE.Stop.PORT)
-        {
-          print(paste("[錯誤] 請先開啟<動態(預設)onlyMDD停利>"))
-        }else
-        {
-          # p.mode.switch <-2
-          REGISTER.ClosePOSITION[2] <-TRUE
-          print(paste("[設定] 附加RSI.TrendADDED停利，價位 :", Price.curr))
-          beep(sound = 2)        
-        }
-      }
-      
-      if(file.exists(enable.Bolling.path))
-      {
-        unlink(enable.Bolling.path)
-        if(enable.STABLE.Stop.PORT)
-        {
-          print(paste("[錯誤] 請先開啟<動態(預設)onlyMDD停利>"))
-        }else
-        {
-        # p.mode.switch <-3
-        REGISTER.ClosePOSITION[3] <-TRUE
-        print(paste("[設定] 附加BollingPATH.ADDED停利，價位 :", Price.curr))
-        beep(sound = 2)
-        }
-      }
-      
-      #預設值，MDD停利
-      # if(p.mode.switch ==1)
-      # {
-      #   MDD.ClosePOSITION <-TRUE #預設判斷MDD
-      # } 
-      # 附加，RSI超買超賣停利
-      if(REGISTER.ClosePOSITION[2]) #考慮RSI
-      {
-        if(
-          (PCL ==for.LONG && (Stop_PORTFOLIO.price.RSI >RSI.OverBOUGHT))
-          ||
-          (PCL ==for.SHORT && (Stop_PORTFOLIO.price.RSI <RSI.OverSOLD))
-        )
-        {
-          CHECK.ClosePOSITION[2] <-TRUE
-        }
-      }
-      #附加，布林通道停利
-      if(REGISTER.ClosePOSITION[3]) #考慮布林通道
-      {
-        if(
-          (PCL ==for.LONG && (Price.curr >BollingPATH.UPPER))
-          ||
-          (PCL ==for.SHORT && (Price.curr <BollingPATH.LOWER))
-        )
-        {
-          CHECK.ClosePOSITION[3] <-TRUE
-        }
-      }
-      
-      #附加條件總檢查
-      EXTRA.ClosePOSITION <- TRUE
-      check_series <- (REGISTER.ClosePOSITION ==CHECK.ClosePOSITION)
-      check_leng <- length(check_series)
-      mark_REGISTER <- 0
-      mark_CHECK <- 0
-      for(miu in 1:check_leng)
-      {
-        #檢查有不符合已啟動條件
-        if(check_series[miu] ==FALSE){EXTRA.ClosePOSITION <-FALSE}
-        
-        if(REGISTER.ClosePOSITION[miu] ==TRUE){mark_REGISTER <-mark_REGISTER+1}
-        if(CHECK.ClosePOSITION[miu]    ==TRUE){mark_CHECK <-mark_CHECK+1}
-      }
-      
-      #手動停利
+
+      #手動平倉
       msg.close.ALLPOSITION  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
       if(file.exists(msg.close.ALLPOSITION))
       {
@@ -365,11 +257,35 @@ Position.stop<-function()
         
       }
       
-      ##無開啟回檔檢查(無動態停利，採固定停利)
-      # if(Max.DDM ==0) 
+      ##固定停利
+      # 3~10 保本法
+      # 10~  回檔法
+      # -10<price<3 特別停損
+      # 其他停損 <-15
       if(enable.STABLE.Stop.PORT)
       {
-        # if Price.diff >Stop_portfolio_RatioPRICE_DIFF
+
+        #平倉啟動條件檢查
+        
+         ##保本檢查
+        if(ddm.times.keepNOLoss.price ==0)
+        {
+          if(PCL ==for.LONG && 
+             Price.diff >=BASE_portfolio) #做多達保本價位
+          {
+            ddm.times.keepNOLoss.price <- Price.curr
+            print(paste("[設定] 啟動多頭保本停利點，價位 :", ddm.times.keepNOLoss.price))
+            alarm_NoLOSS <- "NL"
+          }
+          if(PCL ==for.SHORT && 
+             Price.diff <=BASE_portfolio *-1) #做空達保本價位
+          {
+            ddm.times.keepNOLoss.price <- Price.curr
+            print(paste("[設定] 啟動空頭保本停利點，價位 :", ddm.times.keepNOLoss.price))
+            alarm_NoLOSS <- "nl"
+          } 
+        }
+        
         #標記固定停利起始點，設定兩次回檔現制
         if(ddm.times ==0)
         {
@@ -377,17 +293,93 @@ Position.stop<-function()
              Price.diff >=default.enable_stopPORTFOLIO) #做多平倉
           {
             stable.ddm.price <- Price.curr
-            ddm.times =2
+            ddm.times =ddm.times.lmited
+            alarm_DDM <- "MD"
           }
           if(PCL ==for.SHORT && 
              Price.diff <=default.enable_stopPORTFOLIO *-1) #做空平倉
           {
             stable.ddm.price <- Price.curr
-            ddm.times =2
+            ddm.times =ddm.times.lmited
+            alarm_DDM <- "md"
           }          
         }
         
-        #檢查平倉
+        #平倉檢查
+        ##檢查保本平倉
+        if(ddm.times.keepNOLoss.price !=0)
+        {
+          #創新高
+          if( (PCL ==for.LONG && 
+               Price.curr >ddm.times.keepNOLoss.price &&
+               Price.curr <(Price.in +Stop_portfolio)) #多倉
+              ||
+              (PCL ==for.SHORT && 
+               Price.curr <ddm.times.keepNOLoss.price &&
+               Price.curr >(Price.in -Stop_portfolio)) ) #空倉
+          {
+            ddm.times.keepNOLoss.price <- Price.curr #更新價位
+            ddm.times.keepNOLoss <-0 #歸零計數器
+            print(paste("[設定] 更新保本停利點，價位 :", ddm.times.keepNOLoss.price))
+          }else{
+          
+                  #回檔
+                  if( (PCL ==for.LONG && Price.curr <ddm.times.keepNOLoss.price) #
+                      ||
+                      (PCL ==for.SHORT && Price.curr >ddm.times.keepNOLoss.price) ) #
+                  {
+                    #首次紀錄回檔價
+                    if(ddm.times.keepNOLoss.PREprice ==0)
+                    {
+                      ddm.times.keepNOLoss.PREprice =Price.curr
+                    }
+                    #更新回檔價
+                    else if(
+                            (PCL ==for.LONG && Price.curr <ddm.times.keepNOLoss.PREprice)
+                            ||
+                            (PCL ==for.SHORT && Price.curr >ddm.times.keepNOLoss.PREprice)
+                            )
+                          {
+                            ddm.times.keepNOLoss.PREprice =Price.curr
+                            ddm.times.keepNOLoss =ddm.times.keepNOLoss +1
+                          }
+                    
+                    .ratio <- 1/abs(ddm.times.keepNOLoss.price -Price.curr)
+                    ALL.ddm.times.keepNOLoss <-BASE_portfolio *(1+ .ratio)*Keep.NOLOSS.ratio
+                    Price.diff.ddm <- Price.curr -ddm.times.keepNOLoss.price
+                    
+                    if(( (ddm.times.keepNOLoss >=ALL.ddm.times.keepNOLoss)
+                       ||
+                       (PCL ==for.LONG && Price.diff.ddm <=BASE_portfolio*-1) ||
+                       (PCL ==for.SHORT && Price.diff.ddm >=BASE_portfolio) )
+                       &&
+                       Price.curr != Price.curr.PRE
+                       )
+                    {
+                      if(PCL ==for.LONG)
+                      {
+                        if.safeClose(bs="S")
+                        beep(sound = 8)
+                        print(paste("[動作] 執行多頭保本停利價位 :", Price.curr, Price.diff, "<",ddm.times.keepNOLoss, "/",ALL.ddm.times.keepNOLoss,">"))
+                        break
+                      }
+                      if(PCL ==for.SHORT)
+                      {
+                        if.safeClose(bs="B")
+                        beep(sound = 8)
+                        print(paste("[動作] 執行空頭保本停利價位 :", Price.curr, Price.diff, "<",ddm.times.keepNOLoss, "/",ALL.ddm.times.keepNOLoss,">"))
+                        break
+                      }
+                    }else
+                    {
+                      print(paste("[設定] 更新保本回檔係數 :", "<",ddm.times.keepNOLoss, "/",ALL.ddm.times.keepNOLoss,">", Price.curr))
+                      
+                    }
+                  }
+               } 
+        }
+        
+        ##檢查回檔平倉
         if(ddm.times !=0)
         {
           #創新高
@@ -396,103 +388,85 @@ Position.stop<-function()
               (PCL ==for.SHORT && Price.curr <stable.ddm.price) ) #空倉
           {
             stable.ddm.price <- Price.curr
-          }
+            ddm.times =ddm.times.lmited
+            print(paste("[設定] 更新固定停利點，重設回檔係數 :", stable.ddm.price, ddm.times))
           
-          #回檔
-          if( (PCL ==for.LONG && Price.curr <stable.ddm.price) #
+          #回檔  
+          }else if( ( (PCL ==for.LONG && Price.curr <stable.ddm.price) #
+                  ||
+                  (PCL ==for.SHORT && Price.curr >stable.ddm.price) )
+                  &&
+                  Price.curr != Price.curr.PRE ) #
+                  {
+            
+                    Price.diff.ddm <- Price.curr -stable.ddm.price
+                    ddm.times =ddm.times-1
+                    if( (ddm.times <=0) ||
+                       (PCL ==for.LONG && Price.diff.ddm <=BASE_portfolio*-1) ||
+                       (PCL ==for.SHORT && Price.diff.ddm >=BASE_portfolio) )
+                    {
+                      if(PCL ==for.LONG)
+                      {
+                        if.safeClose(bs="S")
+                        beep(sound = 8)
+                        print(paste("[動作] 執行多頭回檔停利價位 :", Price.curr, ddm.times))
+                        break
+                      }
+                      if(PCL ==for.SHORT)
+                      {
+                        if.safeClose(bs="B")
+                        beep(sound = 8)
+                        print(paste("[動作] 執行空頭回檔停利價位 :", Price.curr, ddm.times))
+                        break
+                      }
+                    }else
+                    {
+                      print(paste("[設定] 更新回檔係數 :", ddm.times, Price.curr))
+                      
+                    }
+                  }
+        }
+        
+        #壓力支撐區形成平倉
+          if( (PCL ==for.LONG && 
+               Price.diff >=default.enable_stopPORTFOLIO &&
+               Price.reachLIMITED.times.Long >Price.reachLIMITED.times.Limited) #多倉
               ||
-              (PCL ==for.SHORT && Price.curr >stable.ddm.price) ) #
+              (PCL ==for.SHORT && 
+               Price.diff <=default.enable_stopPORTFOLIO *-1 &&
+               Price.reachLIMITED.times.Short >Price.reachLIMITED.times.Limited) ) #空倉
           {
-            ddm.times =ddm.times-1
-            if(ddm.times <=0)
-            {
               if(PCL ==for.LONG)
               {
                 if.safeClose(bs="S")
                 beep(sound = 8)
-                print(paste("[動作] 執行多頭停利價位 :", Price.curr))
+                print(paste("[動作] 執行多頭撐壓停利價位 :", Price.curr, Price.diff, ddm.times))
                 break
               }
               if(PCL ==for.SHORT)
               {
                 if.safeClose(bs="B")
                 beep(sound = 8)
-                print(paste("[動作] 執行空頭停利價位 :", Price.curr))
+                print(paste("[動作] 執行空頭撐壓停利價位 :", Price.curr, Price.diff, ddm.times))
                 break
               }
             }
           }
-        }
-        
-        
-      }
+
+      } 
       
-      ##已觸發動態停利
-      if(enable.ddm)
-      {
-        #回檔加成係數
-        ddm.Ratio <-0
-        #創新高
-        if((PCL ==for.LONG && Price.curr >Price.ddm) ||
-           (PCL ==for.SHORT && Price.curr <Price.ddm))
-        {
-          
-          CHECK.ClosePOSITION[1] <-TRUE
-          
-          Price.ddm <-Price.curr
-          beep(sound = 2)
-          print(paste("[設定] 更新停利點價位 :", Price.ddm))
-          
-          Stop_portfolio_RatioPRICE_DIFF <-(Stop_portfolio +Max.DDM)
-          #以回檔點數換算是否更新DDM動態加成點數
-          if(PCL ==for.LONG && Price.ddm -Price.in >=Stop_portfolio_RatioPRICE_DIFF)
-          {
-            ddm.Ratio = round(abs((Price.curr 
-                                   -(Price.in +Stop_portfolio))/Max.DDM)) *-1
-            beep(sound = 2)
-            print(paste("[設定] 更新多倉停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-          }
-          if(PCL ==for.SHORT && Price.ddm -Price.in <=Stop_portfolio_RatioPRICE_DIFF*-1 )
-          {
-            ddm.Ratio = round(abs((Price.curr 
-                                   -(Price.in -Stop_portfolio))/Max.DDM)) *-1
-            beep(sound = 2)
-            print(paste("[設定] 更新空倉停利點加成價位及點數 :", Price.curr, Price.ddm, ddm.Ratio))
-          }
-          
-        }
-        #回檔
-        else{ 
-          #檢查停利條件
-          
-          if(EXTRA.ClosePOSITION)
-          {
-            if((PCL ==for.LONG  && Price.curr -Price.ddm <= (Max.DDM+ddm.Ratio)*-1))
-            {
-              if.safeClose(bs="S")
-              beep(sound = 8)
-              print(paste("[動作] 執行多頭停利價位 :", Price.curr, Price.diff))
-              break
-            }
-            if(PCL ==for.SHORT && Price.curr -Price.ddm >= (Max.DDM+ddm.Ratio))
-            {
-              if.safeClose(bs="B")
-              beep(sound = 8)
-              print(paste("[動作] 執行空頭停利價位 :", Price.curr, Price.diff))
-              break
-            }             
-          }
-        }
-      }
-    }
+
+    # }
+    Price.curr.PRE =Price.curr
     
-    #價差/目前/買進價位/停利/停損/回檔/回檔調整係數/ 
-    print(paste("[待命中 simu:", simu,PCL,"]"
-                , Price.diff, ":",Price.in, ">>", Price.curr, Stop_portfolio, Stop_loss.price
+    print(paste("[",alarm_SP, "/", Price.reachLIMITED.times.Limited 
+                ,alarm_NoLOSS, alarm_DDM, simu, PCL,"]"
+                , Price.diff, ":",Price.in, ">>", Price.curr
+                ,"+",Price.RECeiling.PRE, Price.REFloor.PRE, "-", Stop_portfolio
                 , ddm.Ratio, Max.DDM, round(Stop_PORTFOLIO.price.RSI, digits = 3)
-                , EXTRA.ClosePOSITION, mark_REGISTER, mark_CHECK, "<", enable.defaultPORT.check, ">",enable.STABLE.Stop.PORT, Stop_loss.code))
+                , "<", enable.defaultPORT.check, ">",enable.STABLE.Stop.PORT, Stop_loss.code))
     
-    Sys.sleep(0.10)      
+    # Sys.sleep(0.10)      
   }
   
 }

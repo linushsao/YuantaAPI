@@ -1,7 +1,151 @@
+##
+#### 緊急平倉 ####
+ClosePositionAll<-function(){
+  #system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
+  if (!simu){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
+    OrderNo<-system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
+    print(paste("[下單觸發] 快速平倉"))
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    print(paste("[模擬下單觸發] 快速平倉"))
+  }  
+}
+
+#### 最新報價 ####
+Price.current<-function(pr="CL")
+{
+
+  if(!file.exists(data.path))
+  {
+    return(0)
+  }else{
+    x <-3
+    if(pr=="CL"){x=3}
+    if(pr=="HI"){x=6}
+    if(pr=="LO"){x=7}
+    
+    result <- QueryOHCL(data.path, 1)
+    result <- strsplit(result, ",") 
+    result <- result[[1]][x]   
+  }
+
+}
+
+#### 權益數解讀 ####
+Right.current<-function(x=6)
+{
+  
+  result <- QueryRight()
+  return(result[[x]])
+  
+}
+
+#### 限價委託單 ####
+Place.OrderLMT<-function()
+{
+  
+  #Qty <-1  
+  order.cmd <- ""
+  
+  if (!simu){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
+    order.cmd <-paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade)
+    # OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade),stdout = TRUE)
+    OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
+    print(paste("[下單觸發] 限價委託單 :", OrderNo, " | ",order.cmd))
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    print(paste("[模擬下單觸發] 限價委託單 :",order.cmd))
+  }
+}
+
+#### 市價委託單 ####
+Place.OrderMKT<-function()
+{
+  
+  #Qty <-1  
+  order.cmd <- ""
+  
+  if (!simu){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
+    order.cmd <- paste(Product,BorS,'0',Qty,'MKT',"IOC", Daytrade)
+    OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
+    print(paste("[下單觸發] 市價委託單 :", OrderNo, "|", order.cmd))
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    print(paste("[模擬下單觸發] 市價委託單 :",order.cmd))
+  }
+}
+
+#執行平倉方式
+if.safeClose <-function(bs=NULL)
+{
+  if (!safe.Close)
+  {
+    #預設限價單
+    if(bs =="B" || bs =="S")
+    {
+      BorS <- bs
+      Price <- Price.current()
+      result <- Place.OrderLMT()      
+    }
+    
+    #市價單 
+    if(bs =="MB" || bs =="MS")
+    {
+      BorS <- gsub("M", "", bs)
+      # Price <- Price.current()
+      # result <- Place.OrderLMT() 
+      # BorS <- "S"
+      Price <- Price.current()
+      result <- Place.OrderMKT()
+    }
+    
+  }else{
+    result <- ClosePositionAll()             
+  }  
+}
+# 
+
+filename.gen <-function(x=NULL, name)
+{
+  
+  if(x =="product" || is.null(x)){return(paste0(name, "_Match.txt"))}
+  if(x ==MXFSIMU.Name){return(paste0(MXFSIMU.Name, "_Match.txt"))}
+  if(x =="log"){return(paste0(MXFSIMU.Name, "_MatchLOG.txt"))}
+}
+
+finacial.dataparg.gen <- function(data.path, date.format, Product, Product.file)
+{
+  data.path <- paste0(data.path
+                      , date.format, "/"
+                      , Product, "/"
+                      , Product.file)
+  return(data.path)
+}
+
+data.source.switch <-function(x)
+{
+  .soource <- ifelse(x, SECURTIES.data.path, MXFSIMU.forSERVER.filename)
+  return(.soource)
+}
+
+TF.Switch <-function(logic.val)
+{
+  if(logic.val){val <-FALSE}
+  else{val <-TRUE}
+  
+  return(val)
+}
 
 extra.data <-function(name="CL", p.mode="num")
 {
   #設定訊息檔案路徑
+  close.ALL.path <- paste0(price.path, "close_allPOSITION", ".csv")
   price.open.path <- paste0(price.path, "open", ".csv")
   price.high.path <- paste0(price.path, "high", ".csv")
   price.close.path <- paste0(price.path, "close", ".csv")
@@ -41,10 +185,12 @@ extra.data <-function(name="CL", p.mode="num")
   extremes_Line_Mid.path <-   paste0(price.path, "_extremes_Line_Mid", ".csv")
   extremes_Line_lower.path <- paste0(price.path, "_extremes_Line_lower", ".csv")
   #
+  enable.STABLE.Stop.PORT.path  <- paste0(price.path, "enable.stable.Stop.PORT", ".csv")
   enable.onlyMDD.path  <- paste0(price.path, "enable.onlyMDD", ".csv")
   enable.RSI.TrendADDED.path  <- paste0(price.path, "enable.RSI.TrendADDED", ".csv")
   enable.Bolling.path  <- paste0(price.path, "enable.BollingPATH.ADDED", ".csv")
-  
+  #
+  DISABLE_MXFSIMU.SERVERE.path <- paste0(price.path, "DISABLE_MXFSIMU.SERVERE", ".csv")
   #
   
   operator <- gsub(" ", "", name)
@@ -349,6 +495,11 @@ extra.data <-function(name="CL", p.mode="num")
              {
                return(op_ma.path)
              },
+           
+           enable.STABLE.Stop.PORT =
+             {
+               return(enable.STABLE.Stop.PORT.path)
+             },
            enable.onlyMDD =
              {
                return(enable.onlyMDD.path)
@@ -360,9 +511,18 @@ extra.data <-function(name="CL", p.mode="num")
            enable.BollingPATH.ADDED =
              {
                return(enable.Bolling.path)
+             },
+           DMSS ={
+               return(DISABLE_MXFSIMU.SERVERE.path)
+             },
+           close.ALLPOSITION =
+             {
+               return(close.ALL.path)
              }
     )
   }
   
   
 }
+
+

@@ -8,6 +8,7 @@ SIMU.DATA.Server <- function()
     VERBOSE <- FALSE
     date.reset <-NULL
     f.time <- NULL
+    .sl.time.PRE <- NULL
     
     # log.filename <- paste0(msg.path, filename.gen(x="log"))
     unlink(MXFSIMU.forSERVER.filename)
@@ -89,7 +90,15 @@ SIMU.DATA.Server <- function()
             {
               print(single.line)
               append.to.file(data = single.line, path= MXFSIMU.forSERVER.filename)
-              Sys.sleep(.sl.time) 
+              
+              if(is.null(.sl.time.PRE))
+              {
+                .sl.time.PRE <-.sl.time}
+              
+              .sl.time.CURR <- abs(.sl.time -.sl.time.PRE)
+              Sys.sleep(.sl.time.CURR) 
+              
+              .sl.time.PRE <-.sl.time
             }
             else{
               print(paste(.col.data, .check))

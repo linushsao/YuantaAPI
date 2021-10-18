@@ -3,11 +3,28 @@ rm(list=ls())
 library("beepr")
 setwd("C:/Temp/")
 
-#### 設定額外函式位置 ####
+#### 設定額外函式位置 #### 
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
+source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
 
+##
+msg.path <- "C:/Temp/"
+price.path <- "C:/Temp/msg/"
+realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
+
+##
+MXFSIMU.Name <- "MXFSIMU"
+MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
+# MXFSIMU.Server <- FALSE
+MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
+MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
+
+# MXFSIMU.source.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match_source.txt")
+# MXFSIMU.source.data.path <-finacial.dataparg.gen(realdata.path, .input, Product, Product.file)
+
+##
 Product <-"MXFJ1"
 Price <-0
 BorS <- "" #買(B)或賣(S)
@@ -22,6 +39,7 @@ Stop_portfolio <- 10 #動態停利價差
 default.enable_stopPORTFOLIO <- 15 #固定停利價差
 Max.DDM <- 0
 default.PORTFOLIO.buffer <-5
+Keep.NOLOSS.ratio <-2
 # Stop_loss <- 0 #停損
 PCL <- 0 #多空代號 1 -1
 Price.buyin <- 0
@@ -37,6 +55,7 @@ Stop_portfolio.code <-1
 Stop_loss.type <-c("(1)RsiREVERSAL", "(2)ResearchLINE", "(3)ExtremeLINE", "(4)Bolling", "(5)PolarSTAR")
 Stop_loss.code <-1
 next.step <- ""
+Price.reachLIMITED.times.Limited <-2
 
 get.hour <- as.numeric(format(Sys.time(), "%H"))
 get.sysDate <-  Sys.Date()
@@ -44,28 +63,37 @@ if (get.hour <8){get.sysDate = get.sysDate -1 }
 date.format <- gsub("-", "", get.sysDate)
 #date.format <- gsub("-", "", Sys.Date())
 
+# Product.file <- paste0(date.format, "_Match.txt")
+Product.file <- filename.gen(name=date.format)
+SECURTIES.data.path <-finacial.dataparg.gen(realdata.path, date.format, Product, Product.file)
 
-Product.file <- paste0(date.format, "_Match.txt")
-data.path <- paste0("C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
-                    , date.format, "/"
-                    , Product, "/"
-                    , Product.file)
-msg.path <- paste0("C:/Temp/")
-price.path <- paste0("C:/Temp/msg/")
+#設定預設資料源<證卷商>
+switch.DATA.Source <-TRUE #T表示證卷商
+data.path <- data.source.switch(switch.DATA.Source)
+# data.path <- paste0("C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
+#                     , date.format, "/"
+#                     , Product, "/"
+#                     , Product.file)
 
 enable.STABLE.Stop.PORT.path  <- extra.data(name="enable.STABLE.Stop.PORT", p.mode = "path") #default固定停利
 enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD停利
 enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI超買超賣停利
 enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #布林通道停利
+DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #停止虛擬資料伺服器
 
-#MAIN#
-
+#MAIN# 
 
 ##主程式
 #ChangeProd()
 
 repeat
 {
+  #check for stock.data
+  # if(!file.exists(data.path) || MXFSIMU.Server)
+  # {
+  #   Product <-"MXFSIMU"
+  #   data.path <-MXFSIMU.data.path
+  # }
 
   Price <- Price.current()
   
@@ -80,13 +108,16 @@ repeat
   print(paste0("ENABLE default P.C : ", enable.defaultPORT.check)) 
   print(paste0("ENABLE STABLE S.P. : ", enable.STABLE.Stop.PORT))
   print(paste0("Auto.pos.CLOSE     : ", Auto.positionCLOSE))
-  print(paste0("AUTO.StopPORT      : ", Stop_portfolio.type[Stop_portfolio.code]))
-  print(paste0("AUTO.StopLOSS      : ", Stop_loss.type[Stop_loss.code])) 
+  # print(paste0("AUTO.StopPORT      : ", Stop_portfolio.type[Stop_portfolio.code]))
+  # print(paste0("AUTO.StopLOSS      : ", Stop_loss.type[Stop_loss.code])) 
   print(paste0("Max.DDM            : ", Max.DDM))
   print(paste0("DayTRADE           : ", Daytrade))
   print(paste0("Price.buyin        : ", Price.buyin))
   print(paste0("PCL                : ", PCL))
+  print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
   print(paste0("Simulation         : ", simu))  
+  print(paste0("MXFSource          : ", switch.DATA.Source))  
+  
   print(" ")
 
   # print("(CL)CloseAllPOSITION")
@@ -111,12 +142,16 @@ repeat
  
   print("(EDPC)enable.default.P.CHECK") 
   print("(ESSP)enable.stable.S.P.")
-  print("(EOMD)enable.onlyMDD")
-  print("(ERTA)enable.RsiTREND.ADDED")
-  print("(EBPA)enable.BollingPATH.ADDED")
-  print("(APC)_switch_Auto.pos.CLOSE")
-  print("(SDP)_switch_defaultPORT") 
-  print("(SS)_switch_Simulation") 
+  print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
+  print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
+  print("(SMS)SWITCH MFXSource")
+  
+  print("(SPUT)S&P Unbreaked times")
+  # print("(ERTA)enable.RsiTREND.ADDED")
+  # print("(EBPA)enable.BollingPATH.ADDED")
+  print("(APC)switch_Auto.pos.CLOSE")
+  print("(SDP)switch_defaultPORT") 
+  print("(SS)switch_Simulation") 
    
   if(next.step =="")
   {
@@ -251,9 +286,28 @@ repeat
                   else{Auto.positionCLOSE <-TRUE}
                   },
             SS ={
-                if(simu){simu <-FALSE}
-                else{simu <-TRUE}
+                  if(simu){simu <-FALSE}
+                  else{simu <-TRUE}
                  },
+            #MXFSIMU.Server DMSS.path
+            EMSS ={
+                   SIMU.DATA.Server()
+                  },
+            SPUT ={
+                    Price.reachLIMITED.times.Limited <-as.numeric(readline("Quantity bundle :"))
+                   },
+            SMS ={
+                  switch.DATA.Source <-TF.Switch(switch.DATA.Source)
+                  data.path.tmp <- data.source.switch(switch.DATA.Source)
+                  if(file.exists(data.path.tmp))
+                  {
+                    data.path <- data.path.tmp
+                    print(paste("[訊息] 資料源切換模式 :", switch.DATA.Source))
+                  }else{
+                    switch.DATA.Source <- TF.Switch(switch.DATA.Source)
+                    print(paste("[錯誤] 資料源不存在，目前模式 :", switch.DATA.Source))
+                  }
+                  },
             EDPC ={
                 if(enable.defaultPORT.check){enable.defaultPORT.check <-FALSE}
                 else{enable.defaultPORT.check <-TRUE}
@@ -283,15 +337,21 @@ repeat
             ESSP ={
                     file.create(enable.STABLE.Stop.PORT.path)
                   },
-            EOMD ={
-                      file.create(enable.onlyMDD.path)
-                  },
-            ERTA ={
-                      file.create(enable.RSI.TrendADDED.path)
-                  },
-            EBPA ={
-                      file.create(enable.Bolling.path)
-                  },
+            # EOMD ={
+            #           file.create(enable.onlyMDD.path)
+            #       },
+            # ERTA ={
+            #           file.create(enable.RSI.TrendADDED.path)
+            #       },
+            # EBPA ={
+            #           file.create(enable.Bolling.path)
+            #       },
+            # EBPA ={
+            #         file.create(enable.Bolling.path)
+                  # },
+            DMSU ={
+                    file.create(DMSS.path)
+            },
             QQ ={break},
             
             print(paste0("Command is not correct. [", action, "]"))

@@ -8,6 +8,7 @@ source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
+source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
 
 ##
 msg.path <- "C:/Temp/"
@@ -48,6 +49,9 @@ Auto.positionCLOSE <-FALSE
 enable.STABLE.Stop.PORT <-TRUE #°±§Q¥\¯à>>¹w³]«D°ÊºA°±§Q
 enable.defaultPORT.check <-TRUE #¶}±Ò°±§Q¥\¯à
 
+TRENDMark.LONG <-FALSE
+TRENDMark.SHORT <-FALSE
+
 safe.Close <- TRUE #TRUEªí¨Ï¥Îºò«æ¥­­Ü¨Ó¥­­Ü
 Stop_portfolio.type <-c("(1)MDD", "(2)RsiOVER_SB", "(3)Bolling")
 Stop_portfolio.code <-1
@@ -80,6 +84,7 @@ enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD°
 enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI¶W¶R¶W½æ°±§Q
 enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #¥¬ªL³q¹D°±§Q
 DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #°±¤îµêÀÀ¸ê®Æ¦øªA¾¹
+DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #°±¤î¥N²z¤H¦øªA¾¹
 
 #MAIN# 
 
@@ -117,6 +122,8 @@ repeat
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
   print(paste0("Simulation         : ", simu))  
   print(paste0("MXFSource          : ", switch.DATA.Source))  
+  print(paste0("TRENDMark.LONG     : ", TRENDMark.LONG)) 
+  print(paste0("TRENDMark.SHORT    : ", TRENDMark.SHORT)) 
   
   print(" ")
 
@@ -142,8 +149,11 @@ repeat
  
   print("(EDPC)enable.default.P.CHECK") 
   print("(ESSP)enable.stable.S.P.")
+  print("(EAS)ENABLE_AGENT.SERVERE") 
   print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
   print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
+  print("(DAGS)DISABLE_AGENT.SERVERE") 
+  
   print("(SMS)SWITCH MFXSource")
   
   print("(SPUT)S&P Unbreaked times")
@@ -151,6 +161,9 @@ repeat
   # print("(EBPA)enable.BollingPATH.ADDED")
   print("(APC)switch_Auto.pos.CLOSE")
   print("(SDP)switch_defaultPORT") 
+  print("(STL)switch_TRENDMark.LONG")
+  print("(STS)switch_TRENDMark.SHORT")
+  print("(SDP)switch_defaultPORT")
   print("(SS)switch_Simulation") 
    
   if(next.step =="")
@@ -190,6 +203,16 @@ repeat
                     result <- Place.OrderLMT()
                     Price.buyin <- as.numeric(Price)
                     PCL <- 1
+                    
+                    .path <- extra.data(name="price.Buyin", p.mode = "path")
+                    .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                    .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
+                    unlink(.path)
+                    append.to.file(data=Price.buyin
+                                   , path=.path)
+                    append.to.file(data=PCL
+                                   , path=.PCL.path)
+                    file.create(.msg.path)
                     if(Auto.positionCLOSE)
                     {
                       next.step <- "7"
@@ -210,6 +233,18 @@ repeat
                     result <- Place.OrderLMT()
                     Price.buyin <- as.numeric(Price)
                     PCL <- -1
+                    
+                    .path <- extra.data(name="price.Buyin", p.mode = "path")
+                    .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                    .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
+                    
+                    unlink(.path)
+                    append.to.file(data=Price.buyin
+                                   , path=.path)
+                    append.to.file(data=PCL
+                                   , path=.PCL.path)
+                    file.create(.msg.path)
+                    
                     if(Auto.positionCLOSE)
                     {
                       next.step <- "7"
@@ -289,9 +324,18 @@ repeat
                   if(simu){simu <-FALSE}
                   else{simu <-TRUE}
                  },
+            STL ={
+                    TRENDMark.LONG <- TF.Switch(TRENDMark.LONG)
+                  },
+            STS ={
+                    TRENDMark.SHORT <- TF.Switch(TRENDMark.SHORT)
+                  },
             #MXFSIMU.Server DMSS.path
             EMSS ={
-                   SIMU.DATA.Server()
+                    SIMU.DATA.Server()
+                  },
+            EAS ={
+                    Position.AGENT()
                   },
             SPUT ={
                     Price.reachLIMITED.times.Limited <-as.numeric(readline("Quantity bundle :"))
@@ -337,21 +381,56 @@ repeat
             ESSP ={
                     file.create(enable.STABLE.Stop.PORT.path)
                   },
-            # EOMD ={
-            #           file.create(enable.onlyMDD.path)
-            #       },
-            # ERTA ={
-            #           file.create(enable.RSI.TrendADDED.path)
-            #       },
-            # EBPA ={
-            #           file.create(enable.Bolling.path)
-            #       },
-            # EBPA ={
-            #         file.create(enable.Bolling.path)
-                  # },
+
+            BMA5 ={
+                    .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
+                    .price <- extra.data(name="MA5")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+                  },
+            BMA10 ={
+                    .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
+                    .price <- extra.data(name="MA10")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+                  },
+            BMA20 ={
+              .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+              .price <- extra.data(name="MA20")
+              unlink(.path)
+              append.to.file(data=.price
+                             , path=.path)
+            },
+            SMA5 ={
+              .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
+              .price <- extra.data(name="MA5")
+              unlink(.path)
+              append.to.file(data=.price
+                             , path=.path)
+            },
+            SMA10 ={
+              .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
+              .price <- extra.data(name="MA10")
+              unlink(.path)
+              append.to.file(data=.price
+                             , path=.path)
+            },
+            SMA20 ={
+              .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+              .price <- extra.data(name="MA20")
+              unlink(.path)
+              append.to.file(data=.price
+                             , path=.path)
+            },
             DMSU ={
                     file.create(DMSS.path)
             },
+            DAGS ={
+              file.create(DAGS.path)
+            },
+            
             QQ ={break},
             
             print(paste0("Command is not correct. [", action, "]"))
@@ -362,3 +441,9 @@ repeat
   result <- ""
 }
 
+# path.MA5.CREATE.LONG <- extra.data(name="MA5.CREATE.LONG", p.mode = "path") 
+# path.MA10.CREATE.LONG <- extra.data(name="MA10.CREATE.LONG", p.mode = "path") 
+# path.MA20.CREATE.LONG <- extra.data(name="MA20.CREATE.LONG", p.mode = "path") 
+# path.MA5.CREATE.SHORT <- extra.data(name="MA5.CREATE.SHORT", p.mode = "path") 
+# path.MA10.CREATE.SHORT <- extra.data(name="MA10.CREATE.SHORT", p.mode = "path") 
+# path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path")

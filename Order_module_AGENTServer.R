@@ -1,6 +1,7 @@
 #### AGENT ####
 Position.AGENT<-function()
 {
+  create.price <-0
   for.LONG <- 1
   for.SHORT <- -1 
   Buyin <- "B"
@@ -16,6 +17,8 @@ Position.AGENT<-function()
   Price.culster.limited <- c(rep(0, 15))
   switch.create.positionLONG  <-FALSE
   switch.create.positionSHORT <-FALSE
+  
+  ENABLE.ByMA <-FALSE
  
   Research_Line_Upper <- 0
   Research_Line_lower <- 0
@@ -29,7 +32,14 @@ Position.AGENT<-function()
   path.closeALLPosition     <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
   path.price.Buyin     <- extra.data(name="price.Buyin", p.mode = "path") 
   path.price.PCL     <- extra.data(name="price.PCL", p.mode = "path") 
-  
+ 
+  path.MA5.CREATE.LONG <- extra.data(name="MA5.CREATE.LONG", p.mode = "path") 
+  path.MA10.CREATE.LONG <- extra.data(name="MA10.CREATE.LONG", p.mode = "path") 
+  path.MA20.CREATE.LONG <- extra.data(name="MA20.CREATE.LONG", p.mode = "path") 
+  path.MA5.CREATE.SHORT <- extra.data(name="MA5.CREATE.SHORT", p.mode = "path") 
+  path.MA10.CREATE.SHORT <- extra.data(name="MA10.CREATE.SHORT", p.mode = "path") 
+  path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path") 
+    
   DAGS.path <- extra.data(name="DAGS", p.mode = "path") 
   
   unlink(path.closeALLPosition)
@@ -84,6 +94,10 @@ Position.AGENT<-function()
       extremes_Line_lower <- extra.data(name="extremes_Line_lower")
       Bolling_Line_upper <- extra.data(name="B_UP")
       Bolling_Line_lower <- extra.data(name="B_LO")
+      price.ma5 <- extra.data(name="MA5") 
+      price.ma10 <- extra.data(name="MA10") 
+      price.ma20 <- extra.data(name="MA20") 
+      
     }else{
       #儘量不用
       Research_Line_Upper <- max(c(ifelse(Research_Line_Upper ==0, Price.curr, Research_Line_Upper), Price.curr.PRE))
@@ -115,13 +129,10 @@ Position.AGENT<-function()
       unlink(path.price.PCL)
       unlink(path.create.positionLONG)
       unlink(path.create.positionSHORT)
-      
+      alarm.msg <-NULL
       switch.create.positionLONG =FALSE
       switch.create.positionSHORT =FALSE
-      # Research_Line_Upper <- 0
-      # Research_Line_lower <- 0
-      # extremes_Line_Upper <- 0
-      # extremes_Line_lower <- 0
+      ENABLE.ByMA <-FALSE
 
     }    
     #已開多倉
@@ -130,13 +141,7 @@ Position.AGENT<-function()
       unlink(path.create.positionLONG)
       switch.create.positionLONG =TRUE
       alarm.msg <- "SL.PL"
-      # .stopLOSS.price.LONG <- min(c(Research_Line_lower, extremes_Line_lower)) 
-      # .stopLOSS.price.LONG <- min(c(extremes_Line_lower, Bolling_Line_lower))
-      
-      # Research_Line_Upper <- 0
-      # Research_Line_lower <- 0
-      # extremes_Line_Upper <- 0
-      # extremes_Line_lower <- 0
+
     }
     #已開空倉
     if(file.exists(path.create.positionSHORT))
@@ -144,14 +149,55 @@ Position.AGENT<-function()
       unlink(path.create.positionSHORT)
       switch.create.positionSHORT =TRUE
       alarm.msg <- "SL.PS"
-      # .stopLOSS.price.SHORT <- max(c(Research_Line_Upper, extremes_Line_Upper))
-      # .stopLOSS.price.SHORT <- max(c(extremes_Line_Upper, Bolling_Line_upper)) 
-      
-      # Research_Line_Upper <- 0
-      # Research_Line_lower <- 0
-      # extremes_Line_Upper <- 0
-      # extremes_Line_lower <- 0
+
     } 
+    
+    #
+    if(file.exists(path.MA5.CREATE.LONG)) 
+    {
+      create.price <- extra.data(name="MA5.CREATE.LONG")
+      unlink(path.MA5.CREATE.LONG)
+  
+      alarm.msg <- paste0("CR.5PL", create.price)
+      print(create.price)
+    }
+    if(file.exists(path.MA10.CREATE.LONG)) 
+    {
+      create.price <- extra.data(name="MA10.CREATE.LONG")
+      unlink(path.MA10.CREATE.LONG)
+      
+      alarm.msg <- paste0("CR.10PL", create.price)
+
+    }
+    if(file.exists(path.MA20.CREATE.LONG)) 
+    {
+      create.price <- extra.data(name="MA20.CREATE.LONG")
+      unlink(path.MA20.CREATE.LONG)
+      
+      alarm.msg <- paste0("CR.20PL", create.price)
+    }
+    if(file.exists(path.MA5.CREATE.SHORT)) 
+    {
+      create.price <- extra.data(name="MA5.CREATE.SHORT") *-1
+      unlink(path.MA5.CREATE.SHORT)
+      
+      alarm.msg <- paste0("CR.-5PL", create.price)
+      print(create.price)
+    }
+    if(file.exists(path.MA10.CREATE.SHORT)) 
+    {
+      create.price <- extra.data(name="MA10.CREATE.SHORT") *-1
+      unlink(path.MA10.CREATE.SHORT)
+      
+      alarm.msg <- paste0("CR.-10PL", create.price)
+    }
+    if(file.exists(path.MA20.CREATE.SHORT)) 
+    {
+      create.price <- extra.data(name="MA20.CREATE.SHORT") *-1
+      unlink(path.MA20.CREATE.SHORT)
+      
+      alarm.msg <- paste0("CR.-20PL", create.price)
+    }
     
     #AGENT FUNCTION
     ##
@@ -170,7 +216,7 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopLOSS.price.LONG))
-        break        
+                
       }
       if(Price.curr >=.stopPORT.price.LONG)
       {
@@ -182,7 +228,7 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopPORT.price.LONG))
-        break        
+                
       }
 
       
@@ -202,7 +248,7 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopLOSS.price.SHORT))  
-        break        
+                
       }
       if(Price.curr <=.stopPORT.price.LONG)
       {
@@ -214,9 +260,66 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopPORT.price.LONG))  
-        break        
+                
       }
-    }    
+    }   
+    
+    if(create.price >0)
+    {
+      if(Price.curr <=create.price){ENABLE.ByMA <-TRUE}
+      if(Price.curr >create.price && ENABLE.ByMA)
+      {
+        #Qty <-1 
+        BorS <- "B"
+        Price <- Price.current()
+        result <- Place.OrderLMT()
+        Price.buyin <- as.numeric(Price)
+        PCL <- 1
+        
+        .path <- extra.data(name="price.Buyin", p.mode = "path")
+        .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+        .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
+        unlink(.path)
+        append.to.file(data=Price.buyin
+                       , path=.path)
+        append.to.file(data=PCL
+                       , path=.PCL.path)
+        file.create(.msg.path)
+        create.price <-0
+        ENABLE.ByMA <-FALSE
+      }
+    }
+    
+    if(create.price <0)
+    {
+      if(Price.curr >=create.price){ENABLE.ByMA <-TRUE}
+      
+      if(Price.curr <abs(create.price) && ENABLE.ByMA)
+      {
+        #Qty <-1
+        BorS <- "S"
+        Price <- Price.current()
+        result <- Place.OrderLMT()
+        Price.buyin <- as.numeric(Price)
+        PCL <- -1
+        
+        .path <- extra.data(name="price.Buyin", p.mode = "path")
+        .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+        .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
+        
+        unlink(.path)
+        append.to.file(data=Price.buyin
+                       , path=.path)
+        append.to.file(data=PCL
+                       , path=.PCL.path)
+        file.create(.msg.path)
+        create.price <-0
+        ENABLE.ByMA <-FALSE
+      }
+    }
+    
+    
+    ##
 
     if(Price.curr.PRE ==0){Price.curr.PRE <-Price.curr}
     

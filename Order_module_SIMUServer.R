@@ -68,7 +68,8 @@ SIMU.DATA.Server <- function()
           
           single.line <- data.source[miu, ]
           .col.data <-as.character(single.line[2])
-
+          # .col.buyin <-as.numeric(single.line[3])
+          
           .sl.time <- strsplit(.col.data, ":")
           .sl.time <- as.numeric(.sl.time[[1]][3])
           .sl.time <- .sl.time -floor(.sl.time)
@@ -115,13 +116,6 @@ SIMU.DATA.Server <- function()
       
     }
     
-    append.to.file <- function(data, path)
-    {
-      write.table(data, file=path, sep=","
-                  , row.names=F, na = "NA", 
-                  append=TRUE,col.names=FALSE)
-    }
-
     ##
     #¥Dµ{¦¡
     

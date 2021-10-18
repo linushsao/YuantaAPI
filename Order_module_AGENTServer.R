@@ -216,6 +216,7 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopLOSS.price.LONG))
+        beep(sound = 7)
                 
       }
       if(Price.curr >=.stopPORT.price.LONG)
@@ -228,6 +229,7 @@ Position.AGENT<-function()
                     , Price.PCL
                     , Price.diff
                     , .stopPORT.price.LONG))
+        beep(sound = 8)
                 
       }
 
@@ -247,7 +249,8 @@ Position.AGENT<-function()
                     , switch.create.positionSHORT
                     , Price.PCL
                     , Price.diff
-                    , .stopLOSS.price.SHORT))  
+                    , .stopLOSS.price.SHORT))
+        beep(sound = 7)
                 
       }
       if(Price.curr <=.stopPORT.price.LONG)
@@ -259,14 +262,19 @@ Position.AGENT<-function()
                     , switch.create.positionSHORT
                     , Price.PCL
                     , Price.diff
-                    , .stopPORT.price.LONG))  
+                    , .stopPORT.price.LONG))
+        beep(sound = 8)
                 
       }
     }   
     
     if(create.price >0)
     {
-      if(Price.curr <=create.price){ENABLE.ByMA <-TRUE}
+      if(Price.curr <=create.price && !ENABLE.ByMA)
+      {
+        ENABLE.ByMA <-TRUE
+        beep(sound = 2)
+      }
       if(Price.curr >create.price && ENABLE.ByMA)
       {
         #Qty <-1 
@@ -275,16 +283,19 @@ Position.AGENT<-function()
         result <- Place.OrderLMT()
         Price.buyin <- as.numeric(Price)
         PCL <- 1
+        beep(sound = 2)
         
         .path <- extra.data(name="price.Buyin", p.mode = "path")
         .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
         .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
+        
         unlink(.path)
         append.to.file(data=Price.buyin
                        , path=.path)
         append.to.file(data=PCL
                        , path=.PCL.path)
         file.create(.msg.path)
+        
         create.price <-0
         ENABLE.ByMA <-FALSE
       }
@@ -292,8 +303,11 @@ Position.AGENT<-function()
     
     if(create.price <0)
     {
-      if(Price.curr >=create.price){ENABLE.ByMA <-TRUE}
-      
+      if(Price.curr >=abs(create.price) && !ENABLE.ByMA)
+      {
+        ENABLE.ByMA <-TRUE
+        beep(sound = 2)
+      }
       if(Price.curr <abs(create.price) && ENABLE.ByMA)
       {
         #Qty <-1
@@ -302,6 +316,7 @@ Position.AGENT<-function()
         result <- Place.OrderLMT()
         Price.buyin <- as.numeric(Price)
         PCL <- -1
+        beep(sound = 2)
         
         .path <- extra.data(name="price.Buyin", p.mode = "path")
         .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
@@ -313,6 +328,7 @@ Position.AGENT<-function()
         append.to.file(data=PCL
                        , path=.PCL.path)
         file.create(.msg.path)
+        
         create.price <-0
         ENABLE.ByMA <-FALSE
       }

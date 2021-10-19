@@ -324,9 +324,8 @@ Position.AGENT<-function()
           Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
                                                  , name = "price" ))
           
-          PCL <- 1
-          print(paste("[動作] 空
-                      頭均線服從建倉，價位 :", Price.curr))
+          PCL <- -1
+          print(paste("[動作] 空頭均線服從建倉，價位 :", Price.curr))
           
           beep(sound = 2)
           

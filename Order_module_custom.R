@@ -5,11 +5,13 @@ ClosePositionAll<-function(){
   if (!simu){
     # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
     OrderNo<-system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
-    print(paste("[下單觸發] 快速平倉"))
+    # print(paste("[下單觸發] 快速平倉"))
     # 回傳委託序號
     return(OrderNo)
   }else{
-    print(paste("[模擬下單觸發] 快速平倉"))
+    # print(paste("[模擬下單觸發] 快速平倉"))
+    return("SIMU")
+    
   }  
 }
 
@@ -54,11 +56,12 @@ Place.OrderLMT<-function()
     order.cmd <-paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade)
     # OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade),stdout = TRUE)
     OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
-    print(paste("[下單觸發] 限價委託單 :", OrderNo, " | ",order.cmd))
+    # print(paste("[下單觸發] 限價委託單 :", OrderNo, " | ",order.cmd))
     # 回傳委託序號
     return(OrderNo)
   }else{
-    print(paste("[模擬下單觸發] 限價委託單 :",order.cmd))
+    # print(paste("[模擬下單觸發] 限價委託單 :",order.cmd))
+    return("SIMU")
   }
 }
 
@@ -73,11 +76,12 @@ Place.OrderMKT<-function()
     # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
     order.cmd <- paste(Product,BorS,'0',Qty,'MKT',"IOC", Daytrade)
     OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
-    print(paste("[下單觸發] 市價委託單 :", OrderNo, "|", order.cmd))
+    # print(paste("[下單觸發] 市價委託單 :", OrderNo, "|", order.cmd))
     # 回傳委託序號
     return(OrderNo)
   }else{
-    print(paste("[模擬下單觸發] 市價委託單 :",order.cmd))
+    # print(paste("[模擬下單觸發] 市價委託單 :",order.cmd))
+    return("SIMU")
   }
 }
 
@@ -175,6 +179,101 @@ if(p.mode) #左推出最舊一筆資料(PUSH最常用)
   return(x)
 }
 
+p_n.sig <-function(x)
+{
+  if(x>0){return(1)}
+  else if(x<0){return(-1)}
+  else{reutrn(x)}
+  
+}
+
+check.if.deal <-function()
+{
+  if(switch.check.if.deal)
+  {
+    .check <-account.info(p.mode="by.name", info=transaction)
+    if( .check =="全部成交" ){return(TRUE)}
+    else{return(FALSE)}    
+  }
+  else{return(TRUE)}
+
+}
+
+account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", simu=FALSE)
+{
+  
+  if(p.mode =="analyze")
+  {
+    # if(!simu)
+    # {
+      .info <-  QueryOrder(code)
+      .info <- strsplit(.info, ",")
+      
+      result <-c(
+        .info[[1]][2]
+        , .info[[1]][3]
+        , .info[[1]][4]
+        , .info[[1]][5]
+        , .info[[1]][6]
+        , .info[[1]][7]
+        
+      )      
+    # }
+      
+    result <-c(result, simu)
+    return(result)    
+  }
+  
+  if(p.mode =="by.name")
+  {
+    if(!is.null(info))
+    {
+      switch(name,
+             status ={x<-1},
+             product={x<-2},
+             ls     ={x<-3},
+             price  ={x<-4},
+             amount ={x<-5},
+             period ={x<-6},
+             x=0
+             )
+      if(x ==0){return(0)}
+      else{return(info[x])}
+    }else{return(0)}
+   
+  }
+
+}
+
+transaction.all <-function(bs)
+{
+  #Qty <-1 
+  # BorS <- "B"
+  BorS <- bs
+  Price <- Price.current()
+  result <- Place.OrderLMT() #下單
+  if(!simu)
+  {
+      transaction <-account.info(code=result)
+  }else{
+      if(result =="SIMU")
+      {
+        transaction <- c(rep(NULL, 6))
+        transaction[1] <-c("全部成交")
+        transaction[4] <-Price
+        
+        transaction <-c(transaction, simu)        
+      }
+
+  }
+  
+  # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+  #                                        , name = "price" ))
+  # 
+  # PCL <- 1
+  return(transaction)
+}
+
 extra.data <-function(name="CL", p.mode="num")
 {
   #設定訊息檔案路徑
@@ -216,6 +315,9 @@ extra.data <-function(name="CL", p.mode="num")
   op_ma60.path <- paste0(price.path, "_op_ma60", ".csv")
   op_ma.path <- paste0(price.path, "_op_ma", ".csv")
   #
+  switch_to.ma.path <- paste0(price.path, "switch_to.ma", ".csv")
+
+  #
   Research_Line_Upper.path <- paste0(price.path, "_Research_Line_Upper", ".csv")
   Research_Line_Mid.path <-   paste0(price.path, "_Research_Line_Mid", ".csv")
   Research_Line_lower.path <- paste0(price.path, "_Research_Line_lower", ".csv")
@@ -230,6 +332,7 @@ extra.data <-function(name="CL", p.mode="num")
   #
   DISABLE_MXFSIMU.SERVERE.path <- paste0(price.path, "DISABLE_MXFSIMU.SERVERE", ".csv")
   DISABLE_AGENT.SERVERE.path <- paste0(price.path, "DISABLE_AGENT.SERVERE", ".csv")
+  RESET_AGENT.SERVERE.path <- paste0(price.path, "RESET_AGENT.SERVERE", ".csv")
   
   #
   MA5.CREATE.LONG.path <- paste0(price.path, "MA5.CREATE.LONG", ".csv")
@@ -239,7 +342,9 @@ extra.data <-function(name="CL", p.mode="num")
   MA10.CREATE.SHORT.path <- paste0(price.path, "MA10.CREATE.SHORT", ".csv")
   MA20.CREATE.SHORT.path <- paste0(price.path, "MA20.CREATE.SHORT", ".csv")  
   #
+  currentBar.path <- paste0(price.path, "currentBar", ".csv")
   
+  #
   operator <- gsub(" ", "", name)
   
   if(p.mode =="num")
@@ -558,8 +663,22 @@ extra.data <-function(name="CL", p.mode="num")
            MA20.CREATE.SHORT ={
              if(file.exists(MA20.CREATE.SHORT.path))
              {
-               price.MA20.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.LONG.path), stdout = TRUE))
+               price.MA20.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.SHORT.path), stdout = TRUE))
                return(price.MA20.CREATE.SHORT)
+             }else{return(0)}
+           },
+           switch_to.ma ={
+             if(file.exists(switch_to.ma.path))
+             {
+               price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
+               return(price.switch_to.ma)
+             }else{return(0)}
+           },
+           currentBar ={
+             if(file.exists(switch_to.ma.path))
+             {
+               price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               return(price.currentBar)
              }else{return(0)}
            },
            op_ma =
@@ -569,7 +688,7 @@ extra.data <-function(name="CL", p.mode="num")
              }
     )    
   }
-  
+
   if(p.mode =="path")
   {
     switch(operator,
@@ -757,6 +876,16 @@ extra.data <-function(name="CL", p.mode="num")
            MA20.CREATE.SHORT ={
              return(MA20.CREATE.SHORT.path)
            },
+           RESET_AGENT.SERVERE ={
+             return(RESET_AGENT.SERVERE.path)
+           },  
+           switch_to.ma ={
+             return(switch_to.ma.path)
+           },  
+
+           currentBar ={
+             return(currentBar.path)
+           }, 
            close.ALLPOSITION =
              {
                return(close.ALL.path)

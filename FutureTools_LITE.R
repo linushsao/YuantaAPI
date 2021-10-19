@@ -16,6 +16,8 @@ price.path <- "C:/Temp/msg/"
 realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
 
 ##
+switch.check.if.deal <-FALSE
+transaction <-NULL #交易結果訊息向量
 MXFSIMU.Name <- "MXFSIMU"
 MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
 # MXFSIMU.Server <- FALSE
@@ -30,6 +32,10 @@ Product <-"MXFJ1"
 Price <-0
 BorS <- "" #買(B)或賣(S)
 Daytrade <-"1" #設定當沖(否1是0)
+switch.stopPORT <-5
+.path <-extra.data(name="switch_to.ma", p.mode = "path")
+append.to.file(data=switch.stopPORT
+               , path=.path)
 
 DateFolder <- ""
 result <- "  "
@@ -85,6 +91,7 @@ enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode =
 enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #布林通道停利
 DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #停止虛擬資料伺服器
 DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #停止代理人伺服器
+RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #重設代理人伺服器
 
 #MAIN# 
 
@@ -118,7 +125,10 @@ repeat
   print(paste0("Max.DDM            : ", Max.DDM))
   print(paste0("DayTRADE           : ", Daytrade))
   print(paste0("Price.buyin        : ", Price.buyin))
-  print(paste0("PCL                : ", PCL))
+  print(paste0("PCL                : ", PCL)) 
+  print(paste0("switch.check.ifdeal: ", switch.check.if.deal))
+  print(paste0("switch.stopPORT.MA : ", switch.stopPORT))
+  
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
   print(paste0("Simulation         : ", simu))  
   print(paste0("MXFSource          : ", switch.DATA.Source))  
@@ -150,12 +160,15 @@ repeat
   print("(EDPC)enable.default.P.CHECK") 
   print("(ESSP)enable.stable.S.P.")
   print("(EAS)ENABLE_AGENT.SERVERE") 
+  print("(DAGS)DISABLE_AGENT.SERVERE") 
+  print("(RAGS)RESET_AGENT.SERVERE") 
+  
   print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
   print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
-  print("(DAGS)DISABLE_AGENT.SERVERE") 
-  
+
+  print("(SSM)SWITCH StopPORT.MA")
   print("(SMS)SWITCH MFXSource")
-  
+  print("(SCD)SWITCH check.ifdeale")
   print("(SPUT)S&P Unbreaked times")
   # print("(ERTA)enable.RsiTREND.ADDED")
   # print("(EBPA)enable.BollingPATH.ADDED")
@@ -182,7 +195,10 @@ repeat
             # "0" ={result <- ClosePositionAll()},
             CP ={result <- ChangeProd()},
             CA ={result <- CancelAll()},
-            "5"  ={result <- CancelAll()},
+            "5"  ={
+                    result <- CancelAll()
+                    transaction <-NULL
+            },
             QA ={result <- QueryAllOrder()},
             QO ={result <- QueryOnOpen()},
             QF ={result <- QueryFutureRights()},
@@ -195,68 +211,154 @@ repeat
                     msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
                     file.create(msg.file)
                     result <- ClosePositionAll()
+                    transaction <-NULL
+                    
                   },
             "4"  ={
                     #Qty <-1 
-                    BorS <- "B"
-                    Price <- Price.current()
-                    result <- Place.OrderLMT()
-                    Price.buyin <- as.numeric(Price)
+                    # BorS <- "B"
+                    # Price <- Price.current()
+                    # result <- Place.OrderLMT()
+                    # transaction <-account.info(code=result)
+                    # 
+                    # # Price.buyin <- as.numeric(Price)
+                    # Price.buyin <- as.numeric(account.info(info =transaction
+                    #                                        , name = "price" ))
+                    # 
+                    # PCL <- 1
+                    transaction <-transaction.all(bs="B")
+                    
+                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                                                           , name = "price" ))
+                    
                     PCL <- 1
                     
-                    .path <- extra.data(name="price.Buyin", p.mode = "path")
-                    .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                    .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-                    unlink(.path)
-                    append.to.file(data=Price.buyin
-                                   , path=.path)
-                    append.to.file(data=PCL
-                                   , path=.PCL.path)
-                    file.create(.msg.path)
-                    if(Auto.positionCLOSE)
+                    if(check.if.deal())
                     {
-                      next.step <- "7"
+                      .path <- extra.data(name="price.Buyin", p.mode = "path")
+                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
+                      unlink(.path)
+                      append.to.file(data=Price.buyin
+                                     , path=.path)
+                      append.to.file(data=PCL
+                                     , path=.PCL.path)
+                      file.create(.msg.path)
+                      if(Auto.positionCLOSE)
+                      {
+                        next.step <- "7"
+                      }                     
                     }
+       
                   },
             "2"  ={
                     #Qty <-1 
-                    BorS <- "B"
-                    Price <- Price.current()
-                    result <- Place.OrderMKT()
-                    Price.buyin <- as.numeric(Price)
+                    # BorS <- "B"
+                    # Price <- Price.current()
+                    # result <- Place.OrderMKT()
+                    # transaction <-account.info(code=result)
+                    # 
+                    # # Price.buyin <- as.numeric(Price)
+                    # Price.buyin <- as.numeric(account.info(info =transaction
+                    #                                        , name = "price" ))
+                    # PCL <- 1
+                    transaction <-transaction.all(bs="B")
+                    
+                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                                                           , name = "price" ))
+                    
                     PCL <- 1
+              
+                    if(check.if.deal())
+                    {
+                      .path <- extra.data(name="price.Buyin", p.mode = "path")
+                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
+                      unlink(.path)
+                      append.to.file(data=Price.buyin
+                                     , path=.path)
+                      append.to.file(data=PCL
+                                     , path=.PCL.path)
+                      file.create(.msg.path)
+                      if(Auto.positionCLOSE)
+                      {
+                        next.step <- "7"
+                      }                     
+                    }              
                   },
             "6"  ={
                     #Qty <-1
-                    BorS <- "S"
-                    Price <- Price.current()
-                    result <- Place.OrderLMT()
-                    Price.buyin <- as.numeric(Price)
-                    PCL <- -1
+                    # BorS <- "S"
+                    # Price <- Price.current()
+                    # result <- Place.OrderLMT()
+                    # transaction <-account.info(code=result)
+                    # 
+                    # # Price.buyin <- as.numeric(Price)
+                    # Price.buyin <- as.numeric(account.info(info =transaction
+                    #                                        , name = "price" ))
+                    # PCL <- -1
+                    transaction <-transaction.all(bs="S")
                     
-                    .path <- extra.data(name="price.Buyin", p.mode = "path")
-                    .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                    .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
+                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                                                           , name = "price" ))
                     
-                    unlink(.path)
-                    append.to.file(data=Price.buyin
-                                   , path=.path)
-                    append.to.file(data=PCL
-                                   , path=.PCL.path)
-                    file.create(.msg.path)
-                    
-                    if(Auto.positionCLOSE)
+                    PCL <- 1
+              
+                    if(check.if.deal())
                     {
-                      next.step <- "7"
+                      .path <- extra.data(name="price.Buyin", p.mode = "path")
+                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                      .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
+                      
+                      unlink(.path)
+                      append.to.file(data=Price.buyin
+                                     , path=.path)
+                      append.to.file(data=PCL
+                                     , path=.PCL.path)
+                      file.create(.msg.path)
+                      
+                      if(Auto.positionCLOSE)
+                      {
+                        next.step <- "7"
+                      }
                     }
                  },
             "8"  ={
                     #Qty <-1
-                    BorS <- "S"
-                    Price <- Price.current()
-                    result <- Place.OrderMKT()
-                    Price.buyin <- as.numeric(Price)
-                    PCL <- -1
+                    # BorS <- "S"
+                    # Price <- Price.current()
+                    # result <- Place.OrderMKT()
+                    # transaction <-account.info(code=result)
+                    # 
+                    # # Price.buyin <- as.numeric(Price)
+                    # Price.buyin <- as.numeric(account.info(info =transaction
+                    #                                        , name = "price" ))
+                    # PCL <- -1
+                    transaction <-transaction.all(bs="S")
+                    
+                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                                                           , name = "price" ))
+                    
+                    PCL <- 1
+              
+                    if(check.if.deal())
+                    {
+                      .path <- extra.data(name="price.Buyin", p.mode = "path")
+                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+                      .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
+                      
+                      unlink(.path)
+                      append.to.file(data=Price.buyin
+                                     , path=.path)
+                      append.to.file(data=PCL
+                                     , path=.PCL.path)
+                      file.create(.msg.path)
+                      
+                      if(Auto.positionCLOSE)
+                      {
+                        next.step <- "7"
+                      }
+                    }             
                 },
             # # 多重建倉法
             "9" ={
@@ -330,6 +432,9 @@ repeat
             STS ={
                     TRENDMark.SHORT <- TF.Switch(TRENDMark.SHORT)
                   },
+            SCD ={
+                    switch.check.if.deal <-TF.Switch(switch.check.if.deal) 
+                  },
             #MXFSIMU.Server DMSS.path
             EMSS ={
                     SIMU.DATA.Server()
@@ -389,6 +494,13 @@ repeat
                     append.to.file(data=.price
                                    , path=.path)
                   },
+            BMA5_ ={
+                    .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
+                    .price <- 5
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
             BMA10 ={
                     .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
                     .price <- extra.data(name="MA10")
@@ -396,40 +508,108 @@ repeat
                     append.to.file(data=.price
                                    , path=.path)
                   },
+            BMA10_ ={
+                    .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
+                    .price <- 10
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
             BMA20 ={
-              .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
-              .price <- extra.data(name="MA20")
-              unlink(.path)
-              append.to.file(data=.price
-                             , path=.path)
+                    .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+                    .price <- extra.data(name="MA20")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            "420" ={
+                    .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+                    .price <- extra.data(name="MA20")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            BMA20_ ={
+                    .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+                    .price <- 20
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
             },
             SMA5 ={
-              .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
-              .price <- extra.data(name="MA5")
-              unlink(.path)
-              append.to.file(data=.price
-                             , path=.path)
+                    .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
+                    .price <- extra.data(name="MA5")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            SMA5_ ={
+                    .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
+                    .price <- 5
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
             },
             SMA10 ={
-              .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
-              .price <- extra.data(name="MA10")
-              unlink(.path)
-              append.to.file(data=.price
-                             , path=.path)
+                    .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
+                    .price <- extra.data(name="MA10")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            SMA10_ ={
+                    .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
+                    .price <- 10
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
             },
             SMA20 ={
-              .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
-              .price <- extra.data(name="MA20")
-              unlink(.path)
-              append.to.file(data=.price
-                             , path=.path)
+                    .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+                    .price <- extra.data(name="MA20")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            "620" ={
+                    .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+                    .price <- extra.data(name="MA20")
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+            },
+            SMA20_ ={
+                    .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+                    .price <- 20
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
             },
             DMSU ={
                     file.create(DMSS.path)
             },
             DAGS ={
-              file.create(DAGS.path)
-            },
+                    file.create(DAGS.path)
+                  },
+            RAGS ={
+                    file.create(RAGS.path)
+                  },
+            SSM ={
+                    while(TRUE)
+                    {
+                      result <- as.numeric(readline("Switch STOP.PORT MA(0/5/10):"))
+                      if(result ==0 ||result ==5 || result ==10)
+                      {
+                        switch.stopPORT <-result
+                        .path <-extra.data(name="switch_to.ma", p.mode = "path")
+                        append.to.file(data=switch.stopPORT
+                                       , path=.path)
+                        break
+                      }else{print("Wrong Param.")}                     
+                    }
+
+                    
+                  },
             
             QQ ={break},
             

@@ -133,6 +133,8 @@ Position.stop<-function()
   
   while(TRUE)
   {
+    .check <-account.info(p.mode="by.name", info=transaction)
+    if( .check !="全部成交" ){break}
     
     #目前價位
     Price.curr <- as.numeric(Price.current())

@@ -1,21 +1,3 @@
-# # Order mudule base
-# rm(list=ls())
-# library("beepr")
-# setwd("C:/Temp/")
-# 
-# #### 設定額外函式位置 #### 
-# 
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/m_libs.R")
-# 
-# ##
-msg.path <- "C:/Temp/"
-price.path <- "C:/Temp/msg/"
-realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
 
 ##
 switch.check.if.deal <-FALSE
@@ -26,7 +8,7 @@ MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
 MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
 
 ##
-Product <-"MXFJ1"
+Product <-"MXFK1"
 Price <-0
 BorS <- "" #買(B)或賣(S)
 Daytrade <-"1" #設定當沖(否1是0)

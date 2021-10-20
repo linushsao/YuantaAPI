@@ -23,7 +23,7 @@ Position.multi.create<-function()
     #RSI法
     if(action ==1 && !cond.enable)
     {
-      polar_star_switch <-extra.data(name="polar_star_switch")
+      polar_star_switch <-as.numeric(extra.data(name="polar_star_switch"))
       enable.north.star <-(polar_star_switch <0)
       enable.south.star <-(polar_star_switch >0)
       
@@ -51,9 +51,9 @@ Position.multi.create<-function()
     {
       local.msg <- "<均線建倉法>"
       #極星類型
-      code.polar_star <- extra.data(name="ploar_star")
+      code.polar_star <- as.numeric(extra.data(name="ploar_star"))
       #極星建倉點
-      price.polar_star <- extra.data(name="ploar_star_price")
+      price.polar_star <- as.numeric(extra.data(name="ploar_star_price"))
       
       enable.north.star <- (code.polar_star ==msg.North.start &&
                               Price >price.polar_star)
@@ -245,7 +245,7 @@ Position.stop<-function()
     if(enable.defaultPORT.check)
     {
       
-      Stop_PORTFOLIO.price.RSI <-extra.data(name="RSI")
+      Stop_PORTFOLIO.price.RSI <-as.numeric(extra.data(name="RSI"))
 
       #手動平倉
       msg.close.ALLPOSITION  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 

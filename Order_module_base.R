@@ -122,6 +122,10 @@ QueryUnfinished<-function(){
 }
 
 #### 行情 取用 ####
-QueryOHCL<-function(data.path, n){
-  system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", n, " ",data.path), stdout = TRUE)
+QueryOHCL<-function(data.path){
+  #system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", n, " ",data.path), stdout = TRUE)
+  price.file <- read.csv(data.path, header = FALSE)
+  price.tail <- tail(price.file, 1)
+  single.price <- as.numeric(price.tail[3])
+  return(single.price)
 }

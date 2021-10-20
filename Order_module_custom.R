@@ -19,19 +19,20 @@ ClosePositionAll<-function(){
 Price.current<-function(pr="CL")
 {
 
-  if(!file.exists(data.path))
-  {
-    return(0)
-  }else{
-    x <-3
-    if(pr=="CL"){x=3}
-    if(pr=="HI"){x=6}
-    if(pr=="LO"){x=7}
-    
-    result <- QueryOHCL(data.path, 1)
-    result <- strsplit(result, ",") 
-    result <- result[[1]][x]   
-  }
+  # if(!file.exists(data.path))
+  # {
+  #   return(0)
+  # }else{
+  #   x <-3
+  #   if(pr=="CL"){x=3}
+  #   if(pr=="HI"){x=6}
+  #   if(pr=="LO"){x=7}
+  #   
+  #   result <- QueryOHCL(data.path, 1)
+  #   result <- strsplit(result, ",") 
+  #   result <- result[[1]][x]   
+  # }
+  result <- QueryOHCL(data.path = data.path)
 
 }
 
@@ -186,11 +187,11 @@ p_n.sig <-function(x)
   
 }
 
-check.if.deal <-function(x=FALSE)
+check.if.deal <-function(force=FALSE, decoded.info=NULL)
 {
-  if(switch.check.if.deal || x)
+  if(switch.check.if.deal || force)
   {
-    .check <-account.info(p.mode="by.name", info=transaction)
+    .check <-account.info(p.mode="by.name", info=decoded.info)
     if( .check =="全部成交" ){return(TRUE)}
     else{return(FALSE)}    
   }
@@ -347,6 +348,12 @@ extra.data <-function(name="CL", p.mode="num")
   currentBar.path <- paste0(price.path, "currentBar", ".csv")
   
   #
+  m.tail <-function(path)
+  {
+    price.file <- read.csv(path, header = FALSE)
+    price.tail <- tail(price.file, 1)
+    return(price.tail)
+  }
   operator <- gsub(" ", "", name)
   
   if(p.mode =="num")
@@ -357,7 +364,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.open.path))
                {
-                 price.open <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.open.path), stdout = TRUE))
+                 # price.open <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.open.path), stdout = TRUE))
+                 price.open <- as.character(m.tail(price.open.path))
+                 
                  return(price.open)
                 }else{return(0)}
              },
@@ -365,7 +374,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.high.path))
                {
-                 price.high <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.high.path), stdout = TRUE))
+                 # price.high <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.high.path), stdout = TRUE))
+                 price.high <- as.character(m.tail(price.high.path))
+                 
                  return(price.high)
                }else{return(0)}
                # 
@@ -376,7 +387,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.close.path))
                {
-                 price.close <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.close.path), stdout = TRUE))
+                 # price.close <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.close.path), stdout = TRUE))
+                 price.close <- as.character(m.tail(price.close.path))
+                 
                  return(price.close)
                }else{return(0)}
                # price.close <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.close.path), stdout = TRUE))
@@ -386,7 +399,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.low.path))
                {
-                 price.low <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.low.path), stdout = TRUE))
+                 # price.low <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.low.path), stdout = TRUE))
+                 price.low <- as.character(m.tail(price.low.path))
+                 
                  return(price.low)
                }else{return(0)}
                # price.low <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.low.path), stdout = TRUE))
@@ -396,7 +411,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.ma5.path))
                {
-                 price.ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma5.path), stdout = TRUE))
+                 # price.ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma5.path), stdout = TRUE))
+                 price.ma5 <- as.character(m.tail(price.ma5.path))
+                 
                  return(price.ma5)
                }else{return(0)}
                # price.ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma5.path), stdout = TRUE))
@@ -406,7 +423,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.ma10.path))
                {
-                 price.ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma10.path), stdout = TRUE))
+                 # price.ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma10.path), stdout = TRUE))
+                 price.ma10 <- as.character(m.tail(price.ma10.path))
+                 
                  return(price.ma10)
                }else{return(0)}
                # price.ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma10.path), stdout = TRUE))
@@ -416,7 +435,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.ma20.path))
                {
-                 price.ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma20.path), stdout = TRUE))
+                 # price.ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma20.path), stdout = TRUE))
+                 price.ma20 <- as.character(m.tail(price.ma20.path))
+                 
                  return(price.ma20)
                }else{return(0)}
                # price.ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma20.path), stdout = TRUE))
@@ -426,7 +447,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.Rate_sma5.path))
                {
-                 price.Rate_sma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma5.path), stdout = TRUE))
+                 # price.Rate_sma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma5.path), stdout = TRUE))
+                 price.Rate_sma5 <- as.character(m.tail(price.Rate_sma5.path))
+                 
                  return(price.Rate_sma5)
                }else{return(0)}
                # price.Rate_sma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma5.path), stdout = TRUE))
@@ -436,7 +459,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.Rate_sma10.path))
                {
-                 price.Rate_sma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma10.path), stdout = TRUE))
+                 # price.Rate_sma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma10.path), stdout = TRUE))
+                 price.Rate_sma10 <- as.character(m.tail(price.Rate_sma10.path))
+                 
                  return(price.Rate_sma10)
                }else{return(0)}
                # price.Rate_sma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma10.path), stdout = TRUE))
@@ -446,7 +471,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(price.Rate_sma20.path))
                {
-                 price.Rate_sma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma20.path), stdout = TRUE))
+                 # price.Rate_sma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma20.path), stdout = TRUE))
+                 price.Rate_sma20 <- as.character(m.tail(price.Rate_sma20.path))
+                 
                  return(price.Rate_sma20)
                }else{return(0)}
                # price.Rate_sma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma20.path), stdout = TRUE))
@@ -456,7 +483,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(Research_Line_Upper.path))
                {
-                 price.Research_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Upper.path), stdout = TRUE))
+                 # price.Research_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Upper.path), stdout = TRUE))
+                 price.Research_Line_Upper <- as.character(m.tail(Research_Line_Upper.path))
+                 
                  return(price.Research_Line_Upper)
                }else{return(0)}
                # price.Research_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Upper.path), stdout = TRUE))
@@ -466,7 +495,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(Research_Line_Mid.path))
                {
-                 price.Research_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Mid.path), stdout = TRUE))
+                 # price.Research_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Mid.path), stdout = TRUE))
+                 price.Research_Line_Mid <- as.character(m.tail(Research_Line_Mid.path))
+                 
                  return(price.Research_Line_Mid)
                }else{return(0)}
                # price.Research_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Mid.path), stdout = TRUE))
@@ -476,7 +507,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(Research_Line_lower.path))
                {
-                 price.Research_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_lower.path), stdout = TRUE))
+                 # price.Research_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_lower.path), stdout = TRUE))
+                 price.Research_Line_lower <- as.character(m.tail(Research_Line_lower.path))
+                 
                  return(price.Research_Line_lower)
                }else{return(0)}
                # price.Research_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_lower.path), stdout = TRUE))
@@ -486,7 +519,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(extremes_Line_Upper.path))
                {
-                 price.extremes_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Upper.path), stdout = TRUE))
+                 # price.extremes_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Upper.path), stdout = TRUE))
+                 price.extremes_Line_Upper <- as.character(m.tail(extremes_Line_Upper.path))
+                 
                  return(price.extremes_Line_Upper)
                }else{return(0)}
                # price.extremes_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Upper.path), stdout = TRUE))
@@ -496,7 +531,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(extremes_Line_Mid.path))
                {
-                 price.extremes_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Mid.path), stdout = TRUE))
+                 # price.extremes_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Mid.path), stdout = TRUE))
+                 price.extremes_Line_Mid <- as.character(m.tail(extremes_Line_Mid.path))
+                 
                  return(price.extremes_Line_Mid)
                }else{return(0)}
                # price.extremes_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Mid.path), stdout = TRUE))
@@ -506,7 +543,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(extremes_Line_lower.path))
                {
-                 price.extremes_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_lower.path ), stdout = TRUE))
+                 # price.extremes_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_lower.path ), stdout = TRUE))
+                 price.extremes_Line_lower <- as.character(m.tail(extremes_Line_lower.path))
+                 
                  return(price.extremes_Line_lower)
                }else{return(0)}
                # price.extremes_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_lower.path ), stdout = TRUE))
@@ -516,7 +555,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(ploar_star.path))
                {
-                 code.ploar_star <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star.path), stdout = TRUE))
+                 # code.ploar_star <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star.path), stdout = TRUE))
+                 code.ploar_star <- as.character(m.tail(ploar_star.path))
+                 
                  return(code.ploar_star)
                }else{return(0)}
                # code.ploar_star <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star.path), stdout = TRUE))
@@ -526,7 +567,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(ploar_star_price.path))
                {
-                 code.ploar_star_price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_price.path), stdout = TRUE))
+                 # code.ploar_star_price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_price.path), stdout = TRUE))
+                 code.ploar_star_price <- as.character(m.tail(ploar_star_price.path))
+                 
                  return(code.ploar_star_price)
                }else{return(0)}
                # code.ploar_star_price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_price.path), stdout = TRUE))
@@ -536,7 +579,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(ploar_star_StopLoss.path))
                {
-                 code.ploar_star_stopLoss <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_StopLoss.path), stdout = TRUE))
+                 # code.ploar_star_stopLoss <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_StopLoss.path), stdout = TRUE))
+                 code.ploar_star_stopLoss <- as.character(m.tail(ploar_star_StopLoss.path))
+                 
                  return(code.ploar_star_stopLoss)
                }else{return(0)}
                # code.ploar_star_stopLoss <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_StopLoss.path), stdout = TRUE))
@@ -546,7 +591,9 @@ extra.data <-function(name="CL", p.mode="num")
              {
                if(file.exists(polar_star_switch.path))
                {
-                 code.polar_star_switch.path <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", polar_star_switch.path), stdout = TRUE))
+                 # code.polar_star_switch.path <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", polar_star_switch.path), stdout = TRUE))
+                 code.polar_star_switch.path <- as.character(m.tail(polar_star_switch.path))
+                 
                  return(code.polar_star_switch.path)
                }else{return(0)}
                # code.polar_star_switch.path <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", polar_star_switch.path), stdout = TRUE))
@@ -555,63 +602,87 @@ extra.data <-function(name="CL", p.mode="num")
            
            B_UP =
              {
-               price.b_upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_upper.path), stdout = TRUE))
+               # price.b_upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_upper.path), stdout = TRUE))
+               price.b_upper <- as.character(m.tail(b_upper.path))
+               
                return(price.b_upper)
              },
            B_LO =
              {
-               price.b_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_lower.path), stdout = TRUE))
+               # price.b_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_lower.path), stdout = TRUE))
+               price.b_lower <- as.character(m.tail(b_lower.path))
+               
                return(price.b_lower)
              },
            RSI =
              {
-               price.rsi <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi.path), stdout = TRUE))
+               # price.rsi <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi.path), stdout = TRUE))
+               price.rsi <- as.character(m.tail(rsi.path))
+               
                return(price.rsi)
              },
            RSI_PRE =
              {
-               price.rsi.pre <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_pre.path), stdout = TRUE))
+               # price.rsi.pre <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_pre.path), stdout = TRUE))
+               price.rsi.pre <- as.character(m.tail(rsi_pre.path))
+               
                return(price.rsi.pre)
              },
            RSI_MA5 =
              {
-               price.rsi_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_ma5.path), stdout = TRUE))
+               # price.rsi_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_ma5.path), stdout = TRUE))
+               price.rsi_ma5 <- as.character(m.tail(rsi_ma5.path))
+               
                return(price.rsi_ma5)
              },
            BSRate =
              {
-               price.bsrate <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrate.path), stdout = TRUE))
+               # price.bsrate <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrate.path), stdout = TRUE))
+               price.bsrate <- as.character(m.tail(bsrate.path))
+               
                return(price.bsrate)
              },
            BSRateDiff =
              {
-               price.bsrateDiff <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrateDiff.path), stdout = TRUE))
+               # price.bsrateDiff <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrateDiff.path), stdout = TRUE))
+               price.bsrateDiff <- as.character(m.tail(bsrateDiff.path))
+               
                return(price.bsrateDiff)
              },
            op_ma5 =
              {
-               price.op_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma5.path), stdout = TRUE))
+               # price.op_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma5.path), stdout = TRUE))
+               price.op_ma5 <- as.character(m.tail(op_ma5.path))
+               
                return(price.op_ma5)
              },
            op_ma10 =
              {
-               price.op_ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma10.path), stdout = TRUE))
+               # price.op_ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma10.path), stdout = TRUE))
+               price.op_ma10 <- as.character(m.tail(op_ma10.path))
+               
                return(price.op_ma10)
              },
            op_ma20 =
              {
-               price.op_ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma20.path), stdout = TRUE))
+               # price.op_ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma20.path), stdout = TRUE))
+               price.op_ma20 <- as.character(m.tail(op_ma20.path))
+               
                return(price.op_ma20)
              },
            op_ma60 =
              {
-               price.op_ma60 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma60.path), stdout = TRUE))
+               # price.op_ma60 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma60.path), stdout = TRUE))
+               price.op_ma60 <- as.character(m.tail(op_ma60.path))
+               
                return(price.op_ma60)
              },
            price.Buyin ={
              if(file.exists(price.Buyin.path))
              {
-               price.Buyin <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Buyin.path), stdout = TRUE))
+               # price.Buyin <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Buyin.path), stdout = TRUE))
+               price.Buyin <- as.character(m.tail(price.Buyin.path))
+               
                return(price.Buyin)
              }else{return(0)}
                 # price.Buyin <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Buyin.path), stdout = TRUE))
@@ -620,7 +691,9 @@ extra.data <-function(name="CL", p.mode="num")
            price.PCL ={
              if(file.exists(price.PCL.path))
              {
-               price.PCL <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.PCL.path), stdout = TRUE))
+               # price.PCL <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.PCL.path), stdout = TRUE))
+               price.PCL <- as.character(m.tail(price.PCL.path))
+               
                return(price.PCL)
              }else{return(0)}
            },           
@@ -630,62 +703,81 @@ extra.data <-function(name="CL", p.mode="num")
            MA5.CREATE.LONG ={
              if(file.exists(MA5.CREATE.LONG.path))
              {
-               price.MA5.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.LONG.path), stdout = TRUE))
+               # price.MA5.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.LONG.path), stdout = TRUE))
+               price.MA5.CREATE.LONG <- as.character(m.tail(MA5.CREATE.LONG.path))
+               
                return(price.MA5.CREATE.LONG)
              }else{return(0)}
              },
            MA10.CREATE.LONG ={
              if(file.exists(MA10.CREATE.LONG.path))
              {
-               price.MA10.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.LONG.path), stdout = TRUE))
+               # price.MA10.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.LONG.path), stdout = TRUE))
+               price.MA10.CREATE.LONG <- as.character(m.tail(MA10.CREATE.LONG.path))
+               
                return(price.MA10.CREATE.LONG)
              }else{return(0)}
              },
            MA20.CREATE.LONG ={
              if(file.exists(MA20.CREATE.LONG.path))
              {
-               price.MA20.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.LONG.path), stdout = TRUE))
+               # price.MA20.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.LONG.path), stdout = TRUE))
+               price.MA20.CREATE.LONG <- as.character(m.tail(MA20.CREATE.LONG.path))
+               
                return(price.MA20.CREATE.LONG)
              }else{return(0)}
            },
            MA5.CREATE.SHORT ={
              if(file.exists(MA5.CREATE.SHORT.path))
              {
-               price.MA5.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.SHORT.path), stdout = TRUE))
+               # price.MA5.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.SHORT.path), stdout = TRUE))
+               price.MA5.CREATE.SHORT <- as.character(m.tail(MA5.CREATE.SHORT.path))
+               
                return(price.MA5.CREATE.SHORT)
              }else{return(0)}
            },
            MA10.CREATE.SHORT ={
              if(file.exists(MA10.CREATE.SHORT.path))
              {
-               price.MA10.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.SHORT.path), stdout = TRUE))
+               
+               # price.MA10.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.SHORT.path), stdout = TRUE))
+               price.MA10.CREATE.SHORT <- as.character(m.tail(MA10.CREATE.SHORT.path))
+               
                return(price.MA10.CREATE.SHORT)
              }else{return(0)}
            },
            MA20.CREATE.SHORT ={
              if(file.exists(MA20.CREATE.SHORT.path))
              {
-               price.MA20.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.SHORT.path), stdout = TRUE))
+               # price.MA20.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.SHORT.path), stdout = TRUE))
+               price.MA20.CREATE.SHORT <- as.character(m.tail(MA20.CREATE.SHORT.path))
+               
                return(price.MA20.CREATE.SHORT)
              }else{return(0)}
            },
            switch_to.ma ={
              if(file.exists(switch_to.ma.path))
              {
-               price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
+               # price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
+               price.switch_to.ma <- as.character(m.tail(switch_to.ma.path))
+               
                return(price.switch_to.ma)
              }else{return(0)}
            },
            currentBar ={
-             if(file.exists(switch_to.ma.path))
+             if(file.exists(currentBar.path))
              {
-               price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               price.currentBar <- as.character(m.tail(currentBar.path))
+               
                return(price.currentBar)
              }else{return(0)}
            },
            op_ma =
              {
-               price.op_ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma.path), stdout = TRUE))
+               # price.op_ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma.path), stdout = TRUE))
+               price.op_ma <- as.character(m.tail(op_ma.path))
+               
                return(price.op_ma)
              }
     )    

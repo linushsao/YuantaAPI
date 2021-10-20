@@ -204,7 +204,7 @@ account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", 
   
   if(p.mode =="analyze")
   {
-    if(!simu)
+    if(code !="SIMU")
     {
       .info <-  QueryOrder(code)
       .info <- strsplit(.info, ",")
@@ -218,10 +218,10 @@ account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", 
         , .info[[1]][7]
         
       )      
-    }else if(code =="SIMU")
+    }else
           {
             result <- c(rep(NULL, 6))
-            result[1] <-c("全部成交")
+            result[1] <-"全部成交"
             result[4] <-Price.current()
       
             result <-c(result, simu)

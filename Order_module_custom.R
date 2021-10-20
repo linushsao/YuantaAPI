@@ -345,6 +345,10 @@ extra.data <-function(name="CL", p.mode="num")
   MA10.CREATE.SHORT.path <- paste0(price.path, "MA10.CREATE.SHORT", ".csv")
   MA20.CREATE.SHORT.path <- paste0(price.path, "MA20.CREATE.SHORT", ".csv")  
   #
+  CUSTOM.CREATE.LONG.path <- paste0(price.path, "CUSTOM.CREATE.LONG", ".csv")
+  CUSTOM.CREATE.SHORT.path <- paste0(price.path, "CUSTOM.CREATE.SHORT", ".csv")
+  
+  #
   currentBar.path <- paste0(price.path, "currentBar", ".csv")
   
   #
@@ -773,6 +777,24 @@ extra.data <-function(name="CL", p.mode="num")
                return(price.currentBar)
              }else{return(0)}
            },
+           CUSTOM.CREATE.LONG ={
+             if(file.exists(CUSTOM.CREATE.LONG.path))
+             {
+               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               price.CUSTOM.CREATE.LONG <- as.character(m.tail(CUSTOM.CREATE.LONG.path))
+               
+               return(price.CUSTOM.CREATE.LONG)
+             }else{return(0)}
+           },
+           CUSTOM.CREATE.SHORT ={
+             if(file.exists(CUSTOM.CREATE.SHORT.path))
+             {
+               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               price.CUSTOM.CREATE.SHORT <- as.character(m.tail(CUSTOM.CREATE.SHORT.path))
+               
+               return(price.CUSTOM.CREATE.SHORT)
+             }else{return(0)}
+           },
            op_ma =
              {
                # price.op_ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma.path), stdout = TRUE))
@@ -980,6 +1002,12 @@ extra.data <-function(name="CL", p.mode="num")
            currentBar ={
              return(currentBar.path)
            }, 
+           CUSTOM.CREATE.LONG ={
+             return(CUSTOM.CREATE.LONG.path)
+           }, 
+           CUSTOM.CREATE.SHORT ={
+             return(CUSTOM.CREATE.SHORT.path)
+           },
            close.ALLPOSITION =
              {
                return(close.ALL.path)

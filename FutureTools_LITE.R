@@ -479,7 +479,20 @@ repeat
             ESSP ={
                     file.create(enable.STABLE.Stop.PORT.path)
                   },
-
+            CCL ={
+                    .path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
+                    .price <- as.numeric(readline("CUSTOM.CreateLONG.price :"))
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+                  },
+            CCS ={
+                    .path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
+                    .price <- as.numeric(readline("CUSTOM.CreateSHORT.price :"))
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+                  },
             BMA5 ={
                     .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
                     .price <- extra.data(name="MA5")

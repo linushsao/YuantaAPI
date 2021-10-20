@@ -175,6 +175,27 @@ Position.AGENT<-function()
       beep(sound = 2)
 
     } 
+
+    ##自訂價位建倉
+    ###[create.price價格]
+    CUSTOM.CREATE.LONG.path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
+    if(file.exists(CUSTOM.CREATE.LONG.path)) 
+    {
+      create.price <- as.numeric(extra.data(name="CUSTOM.CREATE.LONG"))
+      unlink(CUSTOM.CREATE.LONG.path)
+      
+      alarm.msg <- paste0("PC.PL.", create.price)
+      # print(create.price)
+    }
+    CUSTOM.CREATE.SHORT.path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
+    if(file.exists(CUSTOM.CREATE.SHORT.path)) 
+    {
+      create.price <- as.numeric(extra.data(name="CUSTOM.CREATE.SHORT"))
+      unlink(CUSTOM.CREATE.SHORT.path)
+      
+      alarm.msg <- paste0("PC.PS.", create.price)
+      # print(create.price)
+    }
     
     ##均線服從建倉
     ###[create.price均線價格]

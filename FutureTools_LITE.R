@@ -9,89 +9,92 @@ source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
+source("C:/Users/linus/Documents/Project/6.APITols/m_libs.R")
+#¥Dµ{¦¡³]©w
+source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_config.R")
 
-##
-msg.path <- "C:/Temp/"
-price.path <- "C:/Temp/msg/"
-realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
 
-##
-switch.check.if.deal <-FALSE
-transaction <-NULL #¥æ©öµ²ªG°T®§¦V¶q
-MXFSIMU.Name <- "MXFSIMU"
-MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
-# MXFSIMU.Server <- FALSE
-MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
-MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
-
-# MXFSIMU.source.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match_source.txt")
-# MXFSIMU.source.data.path <-finacial.dataparg.gen(realdata.path, .input, Product, Product.file)
-
-##
-Product <-"MXFJ1"
-Price <-0
-BorS <- "" #¶R(B)©Î½æ(S)
-Daytrade <-"1" #³]©w·í¨R(§_1¬O0)
-switch.stopPORT <-5
-.path <-extra.data(name="switch_to.ma", p.mode = "path")
-append.to.file(data=switch.stopPORT
-               , path=.path)
-
-DateFolder <- ""
-result <- "  "
-Qty <-1
-gear <-0
-BASE_portfolio <- 3  #µLÁ«·l°±§Q»ù®t
-Stop_portfolio <- 10 #°ÊºA°±§Q»ù®t
-default.enable_stopPORTFOLIO <- 15 #©T©w°±§Q»ù®t
-Max.DDM <- 0
-default.PORTFOLIO.buffer <-5
-Keep.NOLOSS.ratio <-2
-# Stop_loss <- 0 #°±·l
-PCL <- 0 #¦hªÅ¥N¸¹ 1 -1
-Price.buyin <- 0
-simu <-TRUE
-Auto.positionCLOSE <-FALSE
-enable.STABLE.Stop.PORT <-TRUE #°±§Q¥\¯à>>¹w³]«D°ÊºA°±§Q
-enable.defaultPORT.check <-TRUE #¶}±Ò°±§Q¥\¯à
-
-TRENDMark.LONG <-FALSE
-TRENDMark.SHORT <-FALSE
-
-safe.Close <- TRUE #TRUEªí¨Ï¥Îºò«æ¥­­Ü¨Ó¥­­Ü
-Stop_portfolio.type <-c("(1)MDD", "(2)RsiOVER_SB", "(3)Bolling")
-Stop_portfolio.code <-1
-# names(Stop_portfolio.type) <- c("7", "77")
-Stop_loss.type <-c("(1)RsiREVERSAL", "(2)ResearchLINE", "(3)ExtremeLINE", "(4)Bolling", "(5)PolarSTAR")
-Stop_loss.code <-1
-next.step <- ""
-Price.reachLIMITED.times.Limited <-2
-
-get.hour <- as.numeric(format(Sys.time(), "%H"))
-get.sysDate <-  Sys.Date()
-if (get.hour <8){get.sysDate = get.sysDate -1 } 
-date.format <- gsub("-", "", get.sysDate)
-#date.format <- gsub("-", "", Sys.Date())
-
-# Product.file <- paste0(date.format, "_Match.txt")
-Product.file <- filename.gen(name=date.format)
-SECURTIES.data.path <-finacial.dataparg.gen(realdata.path, date.format, Product, Product.file)
-
-#³]©w¹w³]¸ê®Æ·½<ÃÒ¨÷°Ó>
-switch.DATA.Source <-TRUE #Tªí¥ÜÃÒ¨÷°Ó
-data.path <- data.source.switch(switch.DATA.Source)
-# data.path <- paste0("C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
-#                     , date.format, "/"
-#                     , Product, "/"
-#                     , Product.file)
-
-enable.STABLE.Stop.PORT.path  <- extra.data(name="enable.STABLE.Stop.PORT", p.mode = "path") #default©T©w°±§Q
-enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD°±§Q
-enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI¶W¶R¶W½æ°±§Q
-enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #¥¬ªL³q¹D°±§Q
-DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #°±¤îµêÀÀ¸ê®Æ¦øªA¾¹
-DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #°±¤î¥N²z¤H¦øªA¾¹
-RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #­«³]¥N²z¤H¦øªA¾¹
+# 
+# ##
+# switch.check.if.deal <-FALSE
+# transaction <-NULL #¥æ©öµ²ªG°T®§¦V¶q
+# MXFSIMU.Name <- "MXFSIMU"
+# MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
+# # MXFSIMU.Server <- FALSE
+# MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
+# MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
+# 
+# # MXFSIMU.source.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match_source.txt")
+# # MXFSIMU.source.data.path <-finacial.dataparg.gen(realdata.path, .input, Product, Product.file)
+# 
+# ##
+# Product <-"MXFJ1"
+# Price <-0
+# BorS <- "" #¶R(B)©Î½æ(S)
+# Daytrade <-"1" #³]©w·í¨R(§_1¬O0)
+# switch.stopPORT <-5
+# .path <-extra.data(name="switch_to.ma", p.mode = "path")
+# append.to.file(data=switch.stopPORT
+#                , path=.path)
+# 
+# DateFolder <- ""
+# result <- "  "
+# Qty <-1
+# gear <-0
+# BASE_portfolio <- 3  #µLÁ«·l°±§Q»ù®t
+# Stop_portfolio <- 10 #°ÊºA°±§Q»ù®t
+# default.enable_stopPORTFOLIO <- 15 #©T©w°±§Q»ù®t
+# Max.DDM <- 0
+# default.PORTFOLIO.buffer <-5
+# Keep.NOLOSS.ratio <-2
+# # Stop_loss <- 0 #°±·l
+# PCL <- 0 #¦hªÅ¥N¸¹ 1 -1
+# Price.buyin <- 0
+# simu <-TRUE
+# Auto.positionCLOSE <-FALSE
+# enable.STABLE.Stop.PORT <-TRUE #°±§Q¥\¯à>>¹w³]«D°ÊºA°±§Q
+# enable.defaultPORT.check <-TRUE #¶}±Ò°±§Q¥\¯à
+# 
+# TRENDMark.LONG <-FALSE
+# TRENDMark.SHORT <-FALSE
+# 
+# preWORK.name <-c("CURRENTBAR.ADDED")
+# preWORK.check <-c(rep(FALSE, length(preWORK.name)))
+# 
+# safe.Close <- TRUE #TRUEªí¨Ï¥Îºò«æ¥­­Ü¨Ó¥­­Ü
+# Stop_portfolio.type <-c("(1)MDD", "(2)RsiOVER_SB", "(3)Bolling")
+# Stop_portfolio.code <-1
+# # names(Stop_portfolio.type) <- c("7", "77")
+# Stop_loss.type <-c("(1)RsiREVERSAL", "(2)ResearchLINE", "(3)ExtremeLINE", "(4)Bolling", "(5)PolarSTAR")
+# Stop_loss.code <-1
+# next.step <- ""
+# Price.reachLIMITED.times.Limited <-2
+# 
+# get.hour <- as.numeric(format(Sys.time(), "%H"))
+# get.sysDate <-  Sys.Date()
+# if (get.hour <8){get.sysDate = get.sysDate -1 } 
+# date.format <- gsub("-", "", get.sysDate)
+# #date.format <- gsub("-", "", Sys.Date())
+# 
+# # Product.file <- paste0(date.format, "_Match.txt")
+# Product.file <- filename.gen(name=date.format)
+# SECURTIES.data.path <-finacial.dataparg.gen(realdata.path, date.format, Product, Product.file)
+# 
+# #³]©w¹w³]¸ê®Æ·½<ÃÒ¨÷°Ó>
+# switch.DATA.Source <-TRUE #Tªí¥ÜÃÒ¨÷°Ó
+# data.path <- data.source.switch(switch.DATA.Source)
+# # data.path <- paste0("C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
+# #                     , date.format, "/"
+# #                     , Product, "/"
+# #                     , Product.file)
+# 
+# enable.STABLE.Stop.PORT.path  <- extra.data(name="enable.STABLE.Stop.PORT", p.mode = "path") #default©T©w°±§Q
+# enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD°±§Q
+# enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI¶W¶R¶W½æ°±§Q
+# enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #¥¬ªL³q¹D°±§Q
+# DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #°±¤îµêÀÀ¸ê®Æ¦øªA¾¹
+# DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #°±¤î¥N²z¤H¦øªA¾¹
+# RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #­«³]¥N²z¤H¦øªA¾¹
 
 #MAIN# 
 
@@ -100,12 +103,6 @@ RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #­«³]¥N²z¤
 
 repeat
 {
-  #check for stock.data
-  # if(!file.exists(data.path) || MXFSIMU.Server)
-  # {
-  #   Product <-"MXFSIMU"
-  #   data.path <-MXFSIMU.data.path
-  # }
 
   Price <- Price.current()
   
@@ -126,7 +123,7 @@ repeat
   print(paste0("DayTRADE           : ", Daytrade))
   print(paste0("Price.buyin        : ", Price.buyin))
   print(paste0("PCL                : ", PCL)) 
-  print(paste0("switch.check.ifdeal: ", switch.check.if.deal))
+  # print(paste0("switch.check.ifdeal: ", switch.check.if.deal))
   print(paste0("switch.stopPORT.MA : ", switch.stopPORT))
   
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
@@ -192,12 +189,11 @@ repeat
       switch(action,
     
             CL ={result <- ClosePositionAll()},
-            # "0" ={result <- ClosePositionAll()},
             CP ={result <- ChangeProd()},
             CA ={result <- CancelAll()},
             "5"  ={
                     result <- CancelAll()
-                    transaction <-NULL
+                    transaction <-account.info(code=result)
             },
             QA ={result <- QueryAllOrder()},
             QO ={result <- QueryOnOpen()},
@@ -211,30 +207,32 @@ repeat
                     msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
                     file.create(msg.file)
                     result <- ClosePositionAll()
-                    transaction <-NULL
+                    transaction <-account.info(code=result)
                     
                   },
             "4"  ={
                     #Qty <-1 
-                    # BorS <- "B"
-                    # Price <- Price.current()
-                    # result <- Place.OrderLMT()
-                    # transaction <-account.info(code=result)
+                    BorS <- "B"
+                    Price <- Price.current()
+                    result <- Place.OrderLMT()
+                    # result <- transaction.MGR(pdt=Product, bors = "B")
+                    transaction <-account.info(code=result)
+                    print(paste("¦^¶Çµ²ªG :", result, ">>", transaction))
+                    # Price.buyin <- as.numeric(Price)
+                    Price.buyin <- as.numeric(account.info(info =transaction
+                                                           , name = "price" ))
+
+                    PCL <- 1
+                    # transaction <-transaction.all(bs="B")
                     # 
-                    # # Price.buyin <- as.numeric(Price)
-                    # Price.buyin <- as.numeric(account.info(info =transaction
+                    # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
                     #                                        , name = "price" ))
                     # 
                     # PCL <- 1
-                    transaction <-transaction.all(bs="B")
-                    
-                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
-                                                           , name = "price" ))
-                    
-                    PCL <- 1
-                    
-                    if(check.if.deal())
-                    {
+                    # 
+                    # if(check.if.deal())
+                    # {
+                      # print(paste("[¤U³æÄ²µo] §¹¥þ¦¨¥æ"))
                       .path <- extra.data(name="price.Buyin", p.mode = "path")
                       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
                       .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
@@ -248,29 +246,29 @@ repeat
                       {
                         next.step <- "7"
                       }                     
-                    }
+                    # }
        
                   },
             "2"  ={
                     #Qty <-1 
-                    # BorS <- "B"
-                    # Price <- Price.current()
-                    # result <- Place.OrderMKT()
-                    # transaction <-account.info(code=result)
-                    # 
-                    # # Price.buyin <- as.numeric(Price)
-                    # Price.buyin <- as.numeric(account.info(info =transaction
-                    #                                        , name = "price" ))
-                    # PCL <- 1
-                    transaction <-transaction.all(bs="B")
-                    
-                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    BorS <- "B"
+                    Price <- Price.current()
+                    result <- Place.OrderMKT()
+                    transaction <-account.info(code=result)
+
+                    # Price.buyin <- as.numeric(Price)
+                    Price.buyin <- as.numeric(account.info(info =transaction
                                                            , name = "price" ))
-                    
                     PCL <- 1
-              
-                    if(check.if.deal())
-                    {
+                    # transaction <-transaction.all(bs="B")
+                    # 
+                    # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    #                                        , name = "price" ))
+                    # 
+                    # PCL <- 1
+                    # 
+                    # if(check.if.deal())
+                    # {
                       .path <- extra.data(name="price.Buyin", p.mode = "path")
                       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
                       .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
@@ -284,28 +282,30 @@ repeat
                       {
                         next.step <- "7"
                       }                     
-                    }              
+                    # }              
                   },
             "6"  ={
                     #Qty <-1
-                    # BorS <- "S"
-                    # Price <- Price.current()
-                    # result <- Place.OrderLMT()
-                    # transaction <-account.info(code=result)
-                    # 
-                    # # Price.buyin <- as.numeric(Price)
-                    # Price.buyin <- as.numeric(account.info(info =transaction
-                    #                                        , name = "price" ))
-                    # PCL <- -1
-                    transaction <-transaction.all(bs="S")
-                    
-                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    BorS <- "S"
+                    Price <- Price.current()
+                    result <- Place.OrderLMT()
+                    # result <- transaction.MGR(bors = "S")
+                    transaction <-account.info(code=result)
+                    print(paste("¦^¶Çµ²ªG :", result, ">>", transaction))
+
+                    # Price.buyin <- as.numeric(Price)
+                    Price.buyin <- as.numeric(account.info(info =transaction
                                                            , name = "price" ))
-                    
-                    PCL <- 1
-              
-                    if(check.if.deal())
-                    {
+                    PCL <- -1
+                    # transaction <-transaction.all(bs="S")
+                    # 
+                    # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    #                                        , name = "price" ))
+                    # 
+                    # PCL <- 1
+                    # 
+                    # if(check.if.deal())
+                    # {
                       .path <- extra.data(name="price.Buyin", p.mode = "path")
                       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
                       .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
@@ -321,28 +321,28 @@ repeat
                       {
                         next.step <- "7"
                       }
-                    }
+                    # }
                  },
             "8"  ={
                     #Qty <-1
-                    # BorS <- "S"
-                    # Price <- Price.current()
-                    # result <- Place.OrderMKT()
-                    # transaction <-account.info(code=result)
-                    # 
-                    # # Price.buyin <- as.numeric(Price)
-                    # Price.buyin <- as.numeric(account.info(info =transaction
-                    #                                        , name = "price" ))
-                    # PCL <- -1
-                    transaction <-transaction.all(bs="S")
-                    
-                    Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    BorS <- "S"
+                    Price <- Price.current()
+                    result <- Place.OrderMKT()
+                    transaction <-account.info(code=result)
+
+                    # Price.buyin <- as.numeric(Price)
+                    Price.buyin <- as.numeric(account.info(info =transaction
                                                            , name = "price" ))
-                    
-                    PCL <- 1
-              
-                    if(check.if.deal())
-                    {
+                    PCL <- -1
+                    # transaction <-transaction.all(bs="S")
+                    # 
+                    # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+                    #                                        , name = "price" ))
+                    # 
+                    # PCL <- 1
+                    # 
+                    # if(check.if.deal())
+                    # {
                       .path <- extra.data(name="price.Buyin", p.mode = "path")
                       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
                       .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
@@ -358,7 +358,7 @@ repeat
                       {
                         next.step <- "7"
                       }
-                    }             
+                    # }             
                 },
             # # ¦h­««Ø­Üªk
             "9" ={
@@ -590,9 +590,13 @@ repeat
             },
             DAGS ={
                     file.create(DAGS.path)
+                    beep(sound = 2)
+              
                   },
             RAGS ={
                     file.create(RAGS.path)
+                    beep(sound = 2)
+              
                   },
             SSM ={
                     while(TRUE)

@@ -56,11 +56,9 @@ Place.OrderLMT<-function()
     order.cmd <-paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade)
     # OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade),stdout = TRUE)
     OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
-    # print(paste("[下單觸發] 限價委託單 :", OrderNo, " | ",order.cmd))
     # 回傳委託序號
     return(OrderNo)
   }else{
-    # print(paste("[模擬下單觸發] 限價委託單 :",order.cmd))
     return("SIMU")
   }
 }
@@ -76,11 +74,9 @@ Place.OrderMKT<-function()
     # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
     order.cmd <- paste(Product,BorS,'0',Qty,'MKT',"IOC", Daytrade)
     OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
-    # print(paste("[下單觸發] 市價委託單 :", OrderNo, "|", order.cmd))
     # 回傳委託序號
     return(OrderNo)
   }else{
-    # print(paste("[模擬下單觸發] 市價委託單 :",order.cmd))
     return("SIMU")
   }
 }
@@ -88,30 +84,35 @@ Place.OrderMKT<-function()
 #執行平倉方式
 if.safeClose <-function(bs=NULL)
 {
-  if (!safe.Close)
+  if(!simu)
   {
-    #預設限價單
-    if(bs =="B" || bs =="S")
+    if (!safe.Close)
     {
-      BorS <- bs
-      Price <- Price.current()
-      result <- Place.OrderLMT()      
-    }
-    
-    #市價單 
-    if(bs =="MB" || bs =="MS")
-    {
-      BorS <- gsub("M", "", bs)
-      # Price <- Price.current()
-      # result <- Place.OrderLMT() 
-      # BorS <- "S"
-      Price <- Price.current()
-      result <- Place.OrderMKT()
-    }
-    
+      #預設限價單
+      if(bs =="B" || bs =="S")
+      {
+        BorS <- bs
+        Price <- Price.current()
+        result <- Place.OrderLMT()      
+      }
+      
+      #市價單 
+      if(bs =="MB" || bs =="MS")
+      {
+        BorS <- gsub("M", "", bs)
+        Price <- Price.current()
+        result <- Place.OrderMKT()
+      }
+      
+    }else{
+      result <- ClosePositionAll()             
+    }  
   }else{
-    result <- ClosePositionAll()             
-  }  
+    
+    result <-"SIMU"
+  }
+  
+  return(result)
 }
 # 
 
@@ -155,9 +156,7 @@ append.to.file <- function(data, path)
 
 push.pull <- function(x, p.mode)
 {
-# input: _series[_leng](numericarrayref);
-# input: _mode(truefalse);
-# p.mode: TRUE(PUSH) FALSE(PULL)
+
 .leng <- length(x)
 
 if(p.mode) #左推出最舊一筆資料(PUSH最常用)
@@ -187,9 +186,9 @@ p_n.sig <-function(x)
   
 }
 
-check.if.deal <-function()
+check.if.deal <-function(x=FALSE)
 {
-  if(switch.check.if.deal)
+  if(switch.check.if.deal || x)
   {
     .check <-account.info(p.mode="by.name", info=transaction)
     if( .check =="全部成交" ){return(TRUE)}
@@ -204,8 +203,8 @@ account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", 
   
   if(p.mode =="analyze")
   {
-    # if(!simu)
-    # {
+    if(!simu)
+    {
       .info <-  QueryOrder(code)
       .info <- strsplit(.info, ",")
       
@@ -218,9 +217,15 @@ account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", 
         , .info[[1]][7]
         
       )      
-    # }
+    }else if(code =="SIMU")
+          {
+            result <- c(rep(NULL, 6))
+            result[1] <-c("全部成交")
+            result[4] <-Price.current()
       
-    result <-c(result, simu)
+            result <-c(result, simu)
+          }
+      
     return(result)    
   }
   
@@ -244,35 +249,32 @@ account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", 
   }
 
 }
-
-transaction.all <-function(bs)
-{
-  #Qty <-1 
-  # BorS <- "B"
-  BorS <- bs
-  Price <- Price.current()
-  result <- Place.OrderLMT() #下單
-  if(!simu)
-  {
-      transaction <-account.info(code=result)
-  }else{
-      if(result =="SIMU")
-      {
-        transaction <- c(rep(NULL, 6))
-        transaction[1] <-c("全部成交")
-        transaction[4] <-Price
-        
-        transaction <-c(transaction, simu)        
-      }
-
-  }
-  
-  # Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
-  #                                        , name = "price" ))
-  # 
-  # PCL <- 1
-  return(transaction)
-}
+# 
+# transaction.MGR <-function(pdt =NULL, bors=NULL, pr=NULL, Qty=1, type="LMT")
+# {
+#   if(is.null(pdt))
+#   {
+#     Price <- Product
+#   }else{
+#     Price <- pdt
+#     
+#   }
+#   
+#   BorS <- bors
+#   if(is.null(pr))
+#   {
+#     Price <- Price.current()
+#   }else{
+#     Price <- pr
+#     
+#   }
+#   
+#   if(type =="LMT"){result<- Place.OrderLMT()} #下單
+#   if(type =="MKT"){result<- Place.OrderMKT()} #下單
+#   
+#   return(result)
+# 
+# }
 
 extra.data <-function(name="CL", p.mode="num")
 {

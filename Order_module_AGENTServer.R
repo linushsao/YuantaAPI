@@ -58,7 +58,7 @@ Position.AGENT<-function()
     while(TRUE)
     {
       #產生MENU
-      print(paste0("MatchBUFFER        : ", MatchBUFFER))       
+      print(paste0("MatchBUFFER        : ", MatchBUFFER))  
       print(paste0("Simulation         : ", simu))       
       # 
       print(" ")
@@ -267,23 +267,22 @@ Position.AGENT<-function()
         else if(Price.curr >create.price+MatchBUFFER && ENABLE.ByMA)
         {
           #Qty <-1 
-          # BorS <- "B"
-          # Price <- Price.current()
-          # result <- Place.OrderLMT()
+          BorS <- "B"
+          Price <- Price.current()
+          result <- Place.OrderMKT()
+          transaction <-account.info(code=result)
+          print(paste("回傳結果 :", result, ">>", transaction))
+          
           # Price.buyin <- as.numeric(Price)
-          # PCL <- 1
-          transaction <-transaction.all(bs="B")
-          
-          Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+          Price.buyin <- as.numeric(account.info(info =transaction
                                                  , name = "price" ))
-          
-          PCL <- 1
+          PCL <- -1
           print(paste("[動作] 多頭均線服從建倉，價位 :", Price.curr))
           
           beep(sound = 2)
           
-          if(check.if.deal())
-          {  
+          # if(check.if.deal())
+          # {  
             .path <- extra.data(name="price.Buyin", p.mode = "path")
             .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
             .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
@@ -299,7 +298,7 @@ Position.AGENT<-function()
             ENABLE.ByMA <-FALSE
             switch.create.positionLONG <-TRUE
           }
-        }
+        # }
       }
       
       if(create.price <0 && !switch.create.positionSHORT)
@@ -314,23 +313,22 @@ Position.AGENT<-function()
         else if(Price.curr <abs(create.price)-MatchBUFFER && ENABLE.ByMA)
         {
           #Qty <-1
-          # BorS <- "S"
-          # Price <- Price.current()
-          # result <- Place.OrderLMT()
+          BorS <- "S"
+          Price <- Price.current()
+          result <- Place.OrderMKT()
+          transaction <-account.info(code=result)
+          print(paste("回傳結果 :", result, ">>", transaction))
+          
           # Price.buyin <- as.numeric(Price)
-          # PCL <- -1
-          transaction <-transaction.all(bs="S")
-          
-          Price.buyin <- as.numeric(account.info(p.mode ="by.name", info =transaction
+          Price.buyin <- as.numeric(account.info(info =transaction
                                                  , name = "price" ))
-          
           PCL <- -1
           print(paste("[動作] 空頭均線服從建倉，價位 :", Price.curr))
           
           beep(sound = 2)
           
-          if(check.if.deal())
-          {
+          # if(check.if.deal())
+          # {
             .path <- extra.data(name="price.Buyin", p.mode = "path")
             .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
             .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
@@ -347,7 +345,7 @@ Position.AGENT<-function()
             switch.create.positionSHORT <-TRUE
           }
 
-        }
+        # }
       }
     }
     
@@ -366,6 +364,8 @@ Position.AGENT<-function()
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
         result <- ClosePositionAll()
+        print(paste("回傳結果 :", result, ">>", transaction))
+        
         print(paste("[動作] 執行多頭停損價位 :", Price.buyin.PRE, ">", Price.curr
                     , switch.create.positionLONG
                     , Price.PCL
@@ -393,6 +393,8 @@ Position.AGENT<-function()
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
         result <- ClosePositionAll()
+        print(paste("回傳結果 :", result, ">>", transaction))
+        
         print(paste("[動作] 執行多頭停利價位 :", Price.buyin.PRE, ">", Price.curr
                     , switch.create.positionLONG
                     , Price.PCL
@@ -415,6 +417,8 @@ Position.AGENT<-function()
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
         result <- ClosePositionAll()
+        print(paste("回傳結果 :", result, ">>", transaction))
+        
         print(paste("[動作] 執行空頭停損價位 :", Price.curr, "<", Price.buyin.PRE
                     , switch.create.positionSHORT
                     , Price.PCL
@@ -441,6 +445,8 @@ Position.AGENT<-function()
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
         result <- ClosePositionAll()
+        print(paste("回傳結果 :", result, ">>", transaction))
+        
         print(paste("[動作] 執行空頭停利價位 :", Price.curr, "<", Price.buyin.PRE
                     , switch.create.positionSHORT
                     , Price.PCL
@@ -453,117 +459,14 @@ Position.AGENT<-function()
       }
     }
     
-    # ##檢查是否標記為動態均線服從
-    # if(create.price !=0)
-    # {
-    #   for(miu in 1:length(ma.all))
-    #   {
-    #     if(abs(create.price) ==ma.all[miu])
-    #     {
-    #       if(ma.all[miu] ==5)
-    #       {
-    #         .sig <-p_n.sig(create.price)
-    #         create.price <-price.ma5 *p_n.sig(create.price)
-    #         alarm.msg <- paste0("CR.",.sig, ".5PL", create.price)
-    #         
-    #         
-    #       }
-    #       if(ma.all[miu] ==10)
-    #       {
-    #         .sig <-p_n.sig(create.price)
-    #         create.price <-price.ma10 *p_n.sig(create.price)
-    #         alarm.msg <- paste0("CR.", .sig, ".10PL", create.price)
-    #         
-    #       }
-    #       if(ma.all[miu] ==20)
-    #       {
-    #         .sig <-p_n.sig(create.price)
-    #         create.price <-price.ma20 *p_n.sig(create.price)
-    #         alarm.msg <- paste0("CR.", .sig, ". 20PL", create.price)
-    #         
-    #       }
-    #       
-    #     }
-    #   }
-    #   #
-    #   if(create.price >0)
-    #   {
-    #     if(Price.curr <=create.price && !ENABLE.ByMA)
-    #     {
-    #       ENABLE.ByMA <-TRUE
-    #       beep(sound = 2)
-    #     }
-    #     if(Price.curr >create.price && ENABLE.ByMA)
-    #     {
-    #       #Qty <-1 
-    #       BorS <- "B"
-    #       Price <- Price.current()
-    #       result <- Place.OrderLMT()
-    #       Price.buyin <- as.numeric(Price)
-    #       PCL <- 1
-    #       beep(sound = 2)
-    #       
-    #       .path <- extra.data(name="price.Buyin", p.mode = "path")
-    #       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-    #       .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-    #       
-    #       unlink(.path)
-    #       append.to.file(data=Price.buyin
-    #                      , path=.path)
-    #       append.to.file(data=PCL
-    #                      , path=.PCL.path)
-    #       file.create(.msg.path)
-    #       
-    #       create.price <-0
-    #       ENABLE.ByMA <-FALSE
-    #     }
-    #   }
-    #   
-    #   if(create.price <0)
-    #   {
-    #     if(Price.curr >=abs(create.price) && !ENABLE.ByMA)
-    #     {
-    #       ENABLE.ByMA <-TRUE
-    #       beep(sound = 2)
-    #     }
-    #     if(Price.curr <abs(create.price) && ENABLE.ByMA)
-    #     {
-    #       #Qty <-1
-    #       BorS <- "S"
-    #       Price <- Price.current()
-    #       result <- Place.OrderLMT()
-    #       Price.buyin <- as.numeric(Price)
-    #       PCL <- -1
-    #       beep(sound = 2)
-    #       
-    #       .path <- extra.data(name="price.Buyin", p.mode = "path")
-    #       .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-    #       .msg.path <- extra.data(name="create.positionSHORT", p.mode = "path")
-    #       
-    #       unlink(.path)
-    #       append.to.file(data=Price.buyin
-    #                      , path=.path)
-    #       append.to.file(data=PCL
-    #                      , path=.PCL.path)
-    #       file.create(.msg.path)
-    #       
-    #       create.price <-0
-    #       ENABLE.ByMA <-FALSE
-    #     }
-    #   }
-    # }
-
-    
-
-    
-    
+   
     ##
 
     if(Price.curr.PRE ==0){Price.curr.PRE <-Price.curr}
     
     print(paste("[", alarm.msg, Price.PCL, "]", ifelse(Price.buyin.PRE ==0, 0, Price.diff)
                 , Price.buyin.PRE, ">>", Price.curr
-                , switch.create.positionLONG, switch.create.positionSHORT, switch.check.if.deal
+                , switch.create.positionLONG, switch.create.positionSHORT
                 , "+",.stopLOSS.price.LONG
                 , round(ifelse(.stopLOSS.price.LONG ==0,0,.stopLOSS.price.LONG -Price.buyin.PRE), digits = 2)
                 , round(ifelse(.stopLOSS.price.SHORT ==0,0,.stopLOSS.price.SHORT -Price.buyin.PRE), digits = 2)
@@ -572,7 +475,7 @@ Position.AGENT<-function()
                 , "<", Research_Line_Upper, Research_Line_lower
                 , extremes_Line_Upper, extremes_Line_lower
                 , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
-                , switch.DATA.Source, simu, currentbar.num)
+                , simu, currentbar.num)
                 )    
      
     }

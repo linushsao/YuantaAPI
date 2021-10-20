@@ -610,7 +610,9 @@ repeat
             
             QQ ={break},
             
-            print(paste0("Command is not correct. [", action, "]"))
+            result <- readline(paste0("Command is not correct. [", action, "]"))
+            
+            # print(paste0("Command is not correct. [", action, "]"))
             
       )
     }

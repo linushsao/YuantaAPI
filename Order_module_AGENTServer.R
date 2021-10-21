@@ -2,6 +2,7 @@
 Position.AGENT<-function()
 {
   create.price <-0
+  create.price.dynamic <- 0
   MatchBUFFER <-0
   for.LONG <- 1
   for.SHORT <- -1 
@@ -20,11 +21,16 @@ Position.AGENT<-function()
   switch.create.positionSHORT <-FALSE
   Finished.create.positionLONG <-FALSE
   Finished.create.positionSHORT <-FALSE
+  # switch.stopPORT_ <-0
+  # switch.stopPORT_RSI <-0
   
   ma.all <- c(5,10,20)
   ENABLE.ByMA <-FALSE
   CROSS.Stop.PORT.LINE <-0
   stop.PORT.MAPrice <-0
+  stop.PORT.RSIPrice <-0
+  switch.stopPORT.pre <-0
+  switch.stopPORT_RSI.pre <-0
   
   Research_Line_Upper <- 0
   Research_Line_lower <- 0
@@ -32,6 +38,7 @@ Position.AGENT<-function()
   extremes_Line_lower <- 0
   Bolling_Line_upper <- 0
   Bolling_Line_lower <- 0
+  price.rsi <-0
   
   path.create.positionLONG  <- extra.data(name="create.positionLONG", p.mode = "path")
   path.create.positionSHORT <- extra.data(name="create.positionSHORT", p.mode = "path")
@@ -45,7 +52,9 @@ Position.AGENT<-function()
   path.MA5.CREATE.SHORT <- extra.data(name="MA5.CREATE.SHORT", p.mode = "path") 
   path.MA10.CREATE.SHORT <- extra.data(name="MA10.CREATE.SHORT", p.mode = "path") 
   path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path") 
-    
+  path.switch_to.ma <- extra.data(name="switch_to.ma", p.mode = "path") 
+  path.switch_to.rsi <- extra.data(name="switch_to.rsi", p.mode = "path") 
+  
   # DAGS.path <- extra.data(name="DAGS", p.mode = "path") 
   
   unlink(path.closeALLPosition)
@@ -61,7 +70,10 @@ Position.AGENT<-function()
     while(TRUE)
     {
       #產生MENU
-      print(paste0("MatchBUFFER        : ", MatchBUFFER))  
+      print(paste0("MatchBUFFER        : ", MatchBUFFER)) 
+      print(paste0("switch.stopPORT    : ", switch.stopPORT))  
+      print(paste0("switch.stopPORT_RSI: ", switch.stopPORT_RSI))  
+      
       print(paste0("Simulation         : ", simu))       
       # 
       print(" ")
@@ -101,6 +113,10 @@ Position.AGENT<-function()
     # Price.open <- extra.data(name="OP")
     # Price.high <- extra.data(name="HI")
     # Price.low <- extra.data(name="LO")
+    price.ma5 <- as.numeric(extra.data(name="MA5")) 
+    price.ma10 <- as.numeric(extra.data(name="MA10")) 
+    price.ma20 <- as.numeric(extra.data(name="MA20")) 
+    price.rsi <- as.numeric(extra.data(name="RSI"))
     
     # if(switch.DATA.Source)
     # {
@@ -110,11 +126,9 @@ Position.AGENT<-function()
       extremes_Line_lower <- as.numeric(extra.data(name="extremes_Line_lower"))
       Bolling_Line_upper <- as.numeric(extra.data(name="B_UP"))
       Bolling_Line_lower <- as.numeric(extra.data(name="B_LO"))
-      price.ma5 <- as.numeric(extra.data(name="MA5")) 
-      price.ma10 <- as.numeric(extra.data(name="MA10")) 
-      price.ma20 <- as.numeric(extra.data(name="MA20")) 
+
       currentbar.num <- as.numeric(extra.data(name="currentBar")) 
-      switch.stopPORT_ <-as.numeric(extra.data(name="switch_to.ma"))
+      # switch.stopPORT_ <-as.numeric(extra.data(name="switch_to.ma"))
       
       
     # }else{
@@ -155,8 +169,33 @@ Position.AGENT<-function()
       switch.create.positionSHORT =FALSE
       ENABLE.ByMA <-FALSE
       create.price <-0
+      create.price.dynamic <-0
 
-    }    
+    }
+    ##均線停利點
+    if(file.exists(path.switch_to.ma) && 
+       switch.stopPORT != switch.stopPORT.pre)
+    {
+      switch.stopPORT <-as.numeric(extra.data(name="switch_to.ma"))
+      # unlink(path.switch_to.ma)
+      switch.stopPORT.pre <-switch.stopPORT
+      
+      beep(sound = 2)
+      print(paste("[設定] 均線停利點重設 :", switch.stopPORT))
+
+    } 
+    ##RSI停利點
+    if(file.exists(path.switch_to.rsi) &&
+       switch.stopPORT_RSI != switch.stopPORT_RSI.pre)
+    {
+      switch.stopPORT_RSI <-as.numeric(extra.data(name="switch_to.rsi"))
+      # unlink(path.switch_to.rsi)
+      switch.stopPORT_RSI.pre <-switch.stopPORT_RSI
+      
+      beep(sound = 2)
+      print(paste("[設定] RSI停利點重設 :", switch.stopPORT_RSI))
+      
+    }
     ##已開多倉
     if(file.exists(path.create.positionLONG))
     {
@@ -185,7 +224,7 @@ Position.AGENT<-function()
       unlink(CUSTOM.CREATE.LONG.path)
       
       alarm.msg <- paste0("PC.PL.", create.price)
-      # print(create.price)
+      print(paste("[設定] 自訂價位建多倉 :", create.price))
     }
     CUSTOM.CREATE.SHORT.path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
     if(file.exists(CUSTOM.CREATE.SHORT.path)) 
@@ -194,7 +233,7 @@ Position.AGENT<-function()
       unlink(CUSTOM.CREATE.SHORT.path)
       
       alarm.msg <- paste0("PC.PS.", create.price)
-      # print(create.price)
+      print(paste("[設定] 自訂價位建空倉 :", create.price))
     }
     
     ##均線服從建倉
@@ -244,37 +283,43 @@ Position.AGENT<-function()
       alarm.msg <- paste0("PMAs.-20PL.", create.price)
     }
 
-    ##檢查create.price是否標記為動態均線服從
+    ##待命中
     if(create.price !=0)
     {
+      ##檢查create.price是否標記為動態均線服從
       for(miu in 1:length(ma.all))
       {
-        if(abs(create.price) ==ma.all[miu])
-        {
-          if(ma.all[miu] ==5)
+
+          if( abs(create.price) ==ma.all[miu] ||
+             abs(create.price.dynamic) ==ma.all[miu] )
           {
-            .sig <-p_n.sig(create.price)
-            create.price <-price.ma5 *p_n.sig(create.price)
-            alarm.msg <- paste0("PMA.",.sig, ".5PL.", create.price)
+            if(ma.all[miu] ==5)
+            {
+              .sig <-p_n.sig(create.price)
+              create.price <-price.ma5 *.sig
+              alarm.msg <- paste0("PMA.",.sig, ".5PL.", create.price)
+              create.price.dynamic <-ma.all[miu] *.sig
+              
+            }
+            if(ma.all[miu] ==10)
+            {
+              .sig <-p_n.sig(create.price)
+              create.price <-price.ma10 *.sig
+              alarm.msg <- paste0("PMA.", .sig, ".10PL.", create.price)
+              create.price.dynamic <-ma.all[miu] *.sig
+              
+            }
+            if(ma.all[miu] ==20)
+            {
+              .sig <-p_n.sig(create.price)
+              create.price <-price.ma20 *.sig
+              alarm.msg <- paste0("PMA.", .sig, ".20PL.", create.price)
+              create.price.dynamic <-ma.all[miu] *.sig
+              
+            }
             
-            
-          }
-          if(ma.all[miu] ==10)
-          {
-            .sig <-p_n.sig(create.price)
-            create.price <-price.ma10 *p_n.sig(create.price)
-            alarm.msg <- paste0("PMA.", .sig, ".10PL.", create.price)
-            
-          }
-          if(ma.all[miu] ==20)
-          {
-            .sig <-p_n.sig(create.price)
-            create.price <-price.ma20 *p_n.sig(create.price)
-            alarm.msg <- paste0("PMA.", .sig, ".20PL.", create.price)
-            
-          }
-          
-        }
+          }          
+    
       }
       
       #AGENT FUNCTION
@@ -396,9 +441,12 @@ Position.AGENT<-function()
     
     ##已建倉，檢查平倉條件
     ###出場均線設定
-    if(switch.stopPORT_ ==0){stop.PORT.MAPrice =0} #不考慮均線
-    if(switch.stopPORT_ ==5){stop.PORT.MAPrice =price.ma5}
-    if(switch.stopPORT_ ==10){stop.PORT.MAPrice =price.ma10}
+    if(switch.stopPORT ==0) {stop.PORT.MAPrice =0} #不考慮均線
+    if(switch.stopPORT ==5) {stop.PORT.MAPrice =price.ma5}
+    if(switch.stopPORT ==10){stop.PORT.MAPrice =price.ma10}
+    ###出場RSI設定
+    if(switch.stopPORT_RSI ==0){stop.PORT.RSIPrice =0} #不考慮RSI
+    if(switch.stopPORT_RSI >0) {stop.PORT.RSIPrice =switch.stopPORT_RSI}
     
     if(switch.create.positionLONG && 
        Price.PCL ==for.LONG )
@@ -419,7 +467,8 @@ Position.AGENT<-function()
         beep(sound = 7)
         CROSS.Stop.PORT.LINE <-0
         stop.PORT.MAPrice <-0
-        
+        stop.PORT.RSIPrice <-0
+        create.price.dynamic <-0
         #
         ENABLE.ByMA <-FALSE
         Finished.create.positionLONG <-FALSE
@@ -434,9 +483,14 @@ Position.AGENT<-function()
       if(
         CROSS.Stop.PORT.LINE !=0 
         &&
-        ( (stop.PORT.MAPrice !=0 &&
-          Price.curr <=stop.PORT.MAPrice &&
-          CROSS.Stop.PORT.LINE !=currentbar.num) ||(stop.PORT.MAPrice ==0) )
+          ( ((stop.PORT.MAPrice !=0 &&
+            Price.curr <=stop.PORT.MAPrice &&
+            CROSS.Stop.PORT.LINE !=currentbar.num) || (stop.PORT.MAPrice ==0)) 
+            ||
+            ((stop.PORT.RSIPrice !=0 &&
+             price.rsi >=stop.PORT.RSIPrice &&
+             CROSS.Stop.PORT.LINE !=currentbar.num) || (stop.PORT.RSIPrice ==0))
+             )
         )
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
@@ -452,7 +506,8 @@ Position.AGENT<-function()
         beep(sound = 8)
         CROSS.Stop.PORT.LINE <-0
         stop.PORT.MAPrice <-0 
-        
+        stop.PORT.RSIPrice <-0
+        create.price.dynamic <-0
         #
         ENABLE.ByMA <-FALSE
         Finished.create.positionLONG <-FALSE
@@ -480,6 +535,8 @@ Position.AGENT<-function()
         beep(sound = 7)
         CROSS.Stop.PORT.LINE <-0
         stop.PORT.MAPrice <-0
+        stop.PORT.RSIPrice <-0
+        create.price.dynamic <-0
         #
         ENABLE.ByMA <-FALSE
         Finished.create.positionSHORT <-FALSE
@@ -493,9 +550,17 @@ Position.AGENT<-function()
       if(
         CROSS.Stop.PORT.LINE !=0 
         &&
-        ((stop.PORT.MAPrice !=0 &&
-          Price.curr >=stop.PORT.MAPrice &&
-          CROSS.Stop.PORT.LINE !=currentbar.num) ||(stop.PORT.MAPrice ==0))
+        # ((stop.PORT.MAPrice !=0 &&
+        #   Price.curr >=stop.PORT.MAPrice &&
+        #   CROSS.Stop.PORT.LINE !=currentbar.num) ||(stop.PORT.MAPrice ==0))
+          ( ((stop.PORT.MAPrice !=0 &&
+              Price.curr >=stop.PORT.MAPrice &&
+              CROSS.Stop.PORT.LINE !=currentbar.num) || (stop.PORT.MAPrice ==0)) 
+            ||
+            ((stop.PORT.RSIPrice !=0 &&
+              price.rsi <=stop.PORT.RSIPrice*-1 &&
+              CROSS.Stop.PORT.LINE !=currentbar.num) || (stop.PORT.RSIPrice ==0))
+          )
       )
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
@@ -511,6 +576,8 @@ Position.AGENT<-function()
         beep(sound = 8)
         CROSS.Stop.PORT.LINE <-0
         stop.PORT.MAPrice <-0
+        stop.PORT.RSIPrice <-0
+        create.price.dynamic <-0
         #
         ENABLE.ByMA <-FALSE
         Finished.create.positionSHORT <-FALSE
@@ -536,6 +603,7 @@ Position.AGENT<-function()
                 , "<", round(Research_Line_Upper, digits = 2), round(Research_Line_lower, digits = 2)
                 , round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
                 , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
+                , stop.PORT.MAPrice, stop.PORT.RSIPrice
                 , simu, currentbar.num)
                 )    
      

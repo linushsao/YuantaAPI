@@ -319,7 +319,8 @@ extra.data <-function(name="CL", p.mode="num")
   op_ma.path <- paste0(price.path, "_op_ma", ".csv")
   #
   switch_to.ma.path <- paste0(price.path, "switch_to.ma", ".csv")
-
+  switch_to.rsi.path <- paste0(price.path, "switch_to.rsi", ".csv")
+  
   #
   Research_Line_Upper.path <- paste0(price.path, "_Research_Line_Upper", ".csv")
   Research_Line_Mid.path <-   paste0(price.path, "_Research_Line_Mid", ".csv")
@@ -768,6 +769,15 @@ extra.data <-function(name="CL", p.mode="num")
                return(price.switch_to.ma)
              }else{return(0)}
            },
+           switch_to.rsi ={
+             if(file.exists(switch_to.rsi.path))
+             {
+               # price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
+               price.switch_to.rsi <- as.character(m.tail(switch_to.rsi.path))
+               
+               return(price.switch_to.rsi)
+             }else{return(0)}
+           },          
            currentBar ={
              if(file.exists(currentBar.path))
              {
@@ -998,7 +1008,9 @@ extra.data <-function(name="CL", p.mode="num")
            switch_to.ma ={
              return(switch_to.ma.path)
            },  
-
+           switch_to.rsi ={
+             return(switch_to.rsi.path)
+           },
            currentBar ={
              return(currentBar.path)
            }, 

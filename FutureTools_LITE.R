@@ -29,7 +29,8 @@ Product <-"MXFK1"
 Price <-0
 BorS <- "" #買(B)或賣(S)
 Daytrade <-"1" #設定當沖(否1是0)
-switch.stopPORT <-5
+switch.stopPORT <-5 #MA5出場
+switch.stopPORT_RSI <-35 #RSI30出場
 .path <-extra.data(name="switch_to.ma", p.mode = "path")
 append.to.file(data=switch.stopPORT
                , path=.path)
@@ -94,7 +95,7 @@ repeat
 {
 
   Price <- Price.current()
-  
+  print(paste0("--------Fear Of Market Out--------"))
   print(paste0("DataTIME           : ", date.format)) 
   print(paste0("Product            : ", Product)) 
   print(paste0("Price              : ", Price)) 
@@ -114,12 +115,13 @@ repeat
   print(paste0("PCL                : ", PCL)) 
   # print(paste0("switch.check.ifdeal: ", switch.check.if.deal))
   print(paste0("switch.stopPORT.MA : ", switch.stopPORT))
+  print(paste0("switch.stopPORT.RSI: ", switch.stopPORT_RSI))
   
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
   print(paste0("Simulation         : ", simu))  
   print(paste0("MXFSource          : ", switch.DATA.Source))  
-  print(paste0("TRENDMark.LONG     : ", TRENDMark.LONG)) 
-  print(paste0("TRENDMark.SHORT    : ", TRENDMark.SHORT)) 
+  # print(paste0("TRENDMark.LONG     : ", TRENDMark.LONG)) 
+  # print(paste0("TRENDMark.SHORT    : ", TRENDMark.SHORT)) 
   
   print(" ")
 
@@ -136,7 +138,7 @@ repeat
   print("(P)rice bundle")
   print("(Q)uantity bundle")
   print("(BS)Buy|Sell bundle")
-  print("(RBM)remoted.ByMsg")
+  # print("(RBM)remoted.ByMsg")
   print("(SPT)StopPORT.TYPE")
   print("(SLT)StopLOSS.TYPE")
   print("(DT)_switch_DayTRADE")  
@@ -153,10 +155,12 @@ repeat
   print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
 
   print("(SSM)SWITCH StopPORT.MA")
+  print("(SSR)SWITCH StopPORT.RSI")
+  
   print("(SMS)SWITCH MFXSource")
   print("(SCD)SWITCH check.ifdeale")
   print("(SPUT)S&P Unbreaked times")
-  # print("(ERTA)enable.RsiTREND.ADDED")
+  print("(SSM)switch.stopPORT.MA")
   # print("(EBPA)enable.BollingPATH.ADDED")
   print("(APC)switch_Auto.pos.CLOSE")
   print("(SDP)switch_defaultPORT") 
@@ -615,12 +619,27 @@ repeat
                         append.to.file(data=switch.stopPORT
                                        , path=.path)
                         break
-                      }else{print("Wrong Param.")}                     
+                      }else{print("Wrong Param.MA(0/5/10)")}                     
                     }
 
                     
                   },
-            
+            SSR ={
+              while(TRUE)
+              {
+                result <- as.numeric(readline("Switch STOP.PORT RSI(20<X<=45):"))
+                if(result >25 && result <45)
+                {
+                  switch.stopPORT.RSI <-result
+                  .path <-extra.data(name="switch_to.rsi", p.mode = "path")
+                  append.to.file(data=switch.stopPORT.RSI
+                                 , path=.path)
+                  break
+                }else{print("Wrong Param.(20<X<=45)")}                     
+              }
+              
+              
+            },            
             QQ ={break},
             
             result <- readline(paste0("Command is not correct. [", action, "]"))

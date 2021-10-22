@@ -3,7 +3,7 @@ Position.AGENT<-function()
 {
   create.price <-0
   create.price.dynamic <- 0
-  MatchBUFFER <-0
+  MatchBUFFER <-1
   for.LONG <- 1
   for.SHORT <- -1 
   Buyin <- "B"
@@ -23,6 +23,7 @@ Position.AGENT<-function()
   Finished.create.positionSHORT <-FALSE
   # switch.stopPORT_ <-0
   # switch.stopPORT_RSI <-0
+  msg.lite_ <-TRUE
   
   ma.all <- c(5,10,20)
   ENABLE.ByMA <-FALSE
@@ -31,7 +32,7 @@ Position.AGENT<-function()
   stop.PORT.RSIPrice <-0
   switch.stopPORT.pre <-0
   switch.stopPORT_RSI.pre <-0
-  
+
   Research_Line_Upper <- 0
   Research_Line_lower <- 0
   extremes_Line_Upper <- 0
@@ -54,6 +55,7 @@ Position.AGENT<-function()
   path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path") 
   path.switch_to.ma <- extra.data(name="switch_to.ma", p.mode = "path") 
   path.switch_to.rsi <- extra.data(name="switch_to.rsi", p.mode = "path") 
+  path.msg.lite <- extra.data(name="msg.lite", p.mode = "path") 
   
   # DAGS.path <- extra.data(name="DAGS", p.mode = "path") 
   
@@ -172,6 +174,7 @@ Position.AGENT<-function()
       create.price.dynamic <-0
 
     }
+    
     ##均線停利點
     if(file.exists(path.switch_to.ma) && 
        switch.stopPORT != switch.stopPORT.pre)
@@ -213,6 +216,15 @@ Position.AGENT<-function()
       alarm.msg <- "CR.PS"
       beep(sound = 2)
 
+    } 
+    
+    ##msg.lite switch
+    if(file.exists(path.msg.lite))
+    {
+      msg.lite_ =as.logical(extra.data(name="msg.lite"))
+      unlink(path.msg.lite)
+      beep(sound = 2)
+      
     } 
 
     ##自訂價位建倉
@@ -591,21 +603,42 @@ Position.AGENT<-function()
     
     if(Price.curr.PRE ==0){Price.curr.PRE <-Price.curr}
     
+    extra.msg1 <- c()
+    extra.msg2 <- c()
+    
+    if(msg.lite_)
+    {
+      extra.msg1 <-""
+      extra.msg2 <-""
+      }else{
+        extra.msg1 <- paste(
+          switch.create.positionLONG, switch.create.positionSHORT
+          , ENABLE.ByMA, Finished.create.positionLONG, Finished.create.positionSHORT
+          )   
+        extra.msg2 <- paste(
+          "<", round(Research_Line_Upper, digits = 2), round(Research_Line_lower, digits = 2)
+          , round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
+          , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
+        ) 
+    }
+    
     print(paste("[", alarm.msg, Price.PCL, "]", ifelse(Price.buyin.PRE ==0, 0, Price.diff)
                 , Price.buyin.PRE, ">>", Price.curr
-                , switch.create.positionLONG, switch.create.positionSHORT
-                , ENABLE.ByMA, Finished.create.positionLONG, Finished.create.positionSHORT
-                , "+", round(.stopLOSS.price.LONG, digits = 2)
-                , round(ifelse(.stopLOSS.price.LONG ==0,0,.stopLOSS.price.LONG -Price.buyin.PRE), digits = 2)
-                , round(ifelse(.stopLOSS.price.SHORT ==0,0,.stopLOSS.price.SHORT -Price.buyin.PRE), digits = 2)
-                , round(.stopLOSS.price.SHORT, digits = 2),"-"
+                # , switch.create.positionLONG, switch.create.positionSHORT
+                # , ENABLE.ByMA, Finished.create.positionLONG, Finished.create.positionSHORT
+                , extra.msg1
                 , "+", round(.stopPORT.price.LONG, digits = 2), round(.stopPORT.price.SHORT, digits = 2), "-"
-                , "<", round(Research_Line_Upper, digits = 2), round(Research_Line_lower, digits = 2)
-                , round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
-                , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
+                , "+", round(.stopLOSS.price.LONG, digits = 2), round(.stopLOSS.price.SHORT, digits = 2), "-"
+                # , round(ifelse(.stopLOSS.price.LONG ==0 || Price.buyin.PRE ==0,0,.stopLOSS.price.LONG -Price.buyin.PRE), digits = 2)
+                # , round(ifelse(.stopLOSS.price.SHORT ==0 || Price.buyin.PRE ==0,0,.stopLOSS.price.SHORT -Price.buyin.PRE), digits = 2)
+                # , "<", round(Research_Line_Upper, digits = 2), round(Research_Line_lower, digits = 2)
+                # , round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
+                # , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
+                , extra.msg2
                 , stop.PORT.MAPrice, stop.PORT.RSIPrice
                 , simu, currentbar.num)
-                )    
+                )   
+    Sys.sleep(0.1)
      
 
   

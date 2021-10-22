@@ -1,5 +1,16 @@
 # Order mudule base
 rm(list=ls())
+#CUstom LIB.
+# LIBRS <- c('quantmod','stringr','xts','TTR','roxygen2','tseries','rlist','lubridate', 'ids', 'rvest','XML')
+LIBRS <- c('roxygen2')
+sapply(LIBRS,library,character.only=TRUE)
+# sapply(LIBRS,install.packages,character.only=TRUE)
+setwd("C:/Users/linus/Documents/Project/1.R/Analysis.of.trading.strategies/ExtraPackages/linus/stock.Analyze/")
+library('roxygen2')
+roxygenize()
+library("stock.Analyze")
+
+#
 library("beepr")
 setwd("C:/Temp/")
 
@@ -15,7 +26,7 @@ source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
-source("C:/Users/linus/Documents/Project/6.APITols/m_libs.R")
+# source("C:/Users/linus/Documents/Project/6.APITols/m_libs.R")
 ##
 switch.check.if.deal <-TRUE
 transaction <-NULL #交易結果訊息向量
@@ -51,6 +62,7 @@ simu <-TRUE
 Auto.positionCLOSE <-FALSE
 enable.STABLE.Stop.PORT <-TRUE #停利功能>>預設非動態停利
 enable.defaultPORT.check <-TRUE #開啟停利功能
+msg.lite <-TRUE
 
 TRENDMark.LONG <-FALSE
 TRENDMark.SHORT <-FALSE
@@ -423,6 +435,17 @@ repeat
                   if(simu){simu <-FALSE}
                   else{simu <-TRUE}
                  },
+            MSGL ={
+                    msg.lite <- TF.Switch(msg.lite)
+                    .path <-extra.data(name="msg.lite", p.mode = "path")
+                    print(paste("[NEW VALUE] msg.lite :", msg.lite))
+                    .price <- as.character(msg.lite)
+                    unlink(.path)
+                    append.to.file(data=.price
+                                   , path=.path)
+                    result <- readline("PLS. PRESS ANY KEY to continue...")
+                  
+            },
             STL ={
                     TRENDMark.LONG <- TF.Switch(TRENDMark.LONG)
                   },
@@ -652,9 +675,3 @@ repeat
   result <- ""
 }
 
-# path.MA5.CREATE.LONG <- extra.data(name="MA5.CREATE.LONG", p.mode = "path") 
-# path.MA10.CREATE.LONG <- extra.data(name="MA10.CREATE.LONG", p.mode = "path") 
-# path.MA20.CREATE.LONG <- extra.data(name="MA20.CREATE.LONG", p.mode = "path") 
-# path.MA5.CREATE.SHORT <- extra.data(name="MA5.CREATE.SHORT", p.mode = "path") 
-# path.MA10.CREATE.SHORT <- extra.data(name="MA10.CREATE.SHORT", p.mode = "path") 
-# path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path")

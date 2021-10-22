@@ -351,7 +351,7 @@ extra.data <-function(name="CL", p.mode="num")
   
   #
   currentBar.path <- paste0(price.path, "currentBar", ".csv")
-  
+  msg.lite.path <- paste0(price.path, "msg.lite", ".csv")
   #
   m.tail <-function(path)
   {
@@ -805,6 +805,15 @@ extra.data <-function(name="CL", p.mode="num")
                return(price.CUSTOM.CREATE.SHORT)
              }else{return(0)}
            },
+           msg.lite ={
+             if(file.exists(msg.lite.path))
+             {
+               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
+               price.msg.lite <- as.character(m.tail(msg.lite.path))
+               
+               return(price.msg.lite)
+             }else{return(0)}
+           },
            op_ma =
              {
                # price.op_ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma.path), stdout = TRUE))
@@ -1019,6 +1028,9 @@ extra.data <-function(name="CL", p.mode="num")
            }, 
            CUSTOM.CREATE.SHORT ={
              return(CUSTOM.CREATE.SHORT.path)
+           },
+           msg.lite ={
+             return(msg.lite.path)
            },
            close.ALLPOSITION =
              {

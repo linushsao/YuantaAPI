@@ -148,64 +148,52 @@ Position.stop<-function()
  
     ##尋找天花板/地板支撐/壓力
     ##第一次更新極值參數
-    # if((PCL ==for.LONG  && Price.RECeiling.PRE ==0) ||
-    #    (PCL ==for.SHORT && Price.REFloor.PRE ==0))
-    if(Price.RECeiling.PRE ==0 &&
+    if(Price.RECeiling.PRE ==0 ||
        Price.REFloor.PRE ==0)
     {
-      # if(PCL ==for.LONG  && Price.RECeiling.PRE ==0)
       Price.RECeiling.PRE <-Price.in
-      # if(PCL ==for.SHORT && Price.REFloor.PRE ==0)
       Price.REFloor.PRE <-Price.in
       
     }else{
           #檢查極值
-          # Price.RECeiling.diff <- Price.curr -Price.high
-          # Price.REFloor.diff   <- Price.curr -Price.low
           Price.RECeiling.diff <- Price.curr -Price.RECeiling.PRE
           Price.REFloor.diff   <- Price.curr -Price.REFloor.PRE
           
           #檢查天花板
-          # if(PCL ==for.LONG ) #
-          # {
-            #產生新的天花板
-            if(Price.curr >Price.RECeiling.PRE) 
-            {
-              Price.RECeiling.PRE <- Price.curr #記錄新的天花板
-              Price.reachLIMITED.times.Long <-0 #歸零<無法突破天花板之次數>
-              alarm_SP <- "^^"
-            } 
-            #再次回到同樣天花板
-            else if(Price.RECeiling.diff ==0 && 
-                    Price.curr.PRE !=Price.curr) #非重複
-            {
-              #更新<無法突破天花板>之次數
-              Price.reachLIMITED.times.Long <- Price.reachLIMITED.times.Long +1
-              alarm_SP <- paste0("^", Price.reachLIMITED.times.Long)
-            }
-            
-          # }
+          #產生新的天花板
+          if(Price.curr >Price.RECeiling.PRE) 
+          {
+            Price.RECeiling.PRE <- Price.curr #記錄新的天花板
+            Price.reachLIMITED.times.Long <-0 #歸零<無法突破天花板之次數>
+            alarm_SP <- "^^"
+          } 
+          #再次回到同樣天花板
+          else if(Price.RECeiling.diff ==0 && 
+                  Price.curr.PRE <Price.curr) #非重複
+          {
+            #更新<無法突破天花板>之次數
+            Price.reachLIMITED.times.Long <- Price.reachLIMITED.times.Long +1
+            alarm_SP <- paste0("^", Price.reachLIMITED.times.Long)
+          }
           
           #檢查地板
-          # if(PCL ==for.SHORT) #價位同下極值
-          # {
-            #產生新的地板
-            if(Price.curr <Price.REFloor.PRE) 
-            {
-              Price.REFloor.PRE <- Price.curr #記錄新的地板
-              Price.reachLIMITED.times.Short <-0 #歸零<無法突破地板之次數>
-              alarm_SP <- "VV"
-            } 
-            #再次回到同樣地板
-            else if(Price.curr ==Price.REFloor.PRE && 
-                    Price.curr.PRE !=Price.curr) #非重複
-            {
-              #更新<無法突破地板>之次數
-              Price.reachLIMITED.times.Short <- Price.reachLIMITED.times.Short +1
-              alarm_SP <- paste0("v", Price.reachLIMITED.times.Short)
-            }
-            
-          # }
+          #產生新的地板
+          if(Price.curr <Price.REFloor.PRE) 
+          {
+            Price.REFloor.PRE <- Price.curr #記錄新的地板
+            Price.reachLIMITED.times.Short <-0 #歸零<無法突破地板之次數>
+            alarm_SP <- "VV"
+          } 
+          #再次回到同樣地板
+          else if(Price.curr ==Price.REFloor.PRE && 
+                  Price.curr.PRE >Price.curr) #非重複
+          {
+            #更新<無法突破地板>之次數
+            Price.reachLIMITED.times.Short <- Price.reachLIMITED.times.Short +1
+            alarm_SP <- paste0("v", Price.reachLIMITED.times.Short)
+          }
+          
+        # }
           
     }
     
@@ -216,7 +204,7 @@ Position.stop<-function()
           (Price.curr -Price.in <=default.enable_stopPORTFOLIO*-1)
          ||
          (Price.curr -Price.in <=Stop_portfolio*-1 && 
-          Price.RECeiling.PRE <Price.in +BASE_portfolio)
+          Price.RECeiling.PRE <Price.in +BASE_portfolio) #未達基本獲利點
         )
      )
      {
@@ -260,8 +248,8 @@ Position.stop<-function()
       }
       
       ##固定停利
-      # 3~10 保本法
-      # 10~  回檔法
+      # 7~15 保本法
+      # 15~  回檔法
       # -10<price<3 特別停損
       # 其他停損 <-15
       if(enable.STABLE.Stop.PORT)

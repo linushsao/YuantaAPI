@@ -1,18 +1,27 @@
+#
+CODE.SIMU <- "SIMU"
 
-##
-switch.check.if.deal <-FALSE
 transaction <-NULL #交易結果訊息向量
+
+ANSWER.NULL <- "Nodata"
+ANSWER.ALLDeal <-"全部成交"
+ANSWER.SOMEDeal <-"部分成交"
+ANSWER.ALLCancel <-"全部取消"
+
 MXFSIMU.Name <- "MXFSIMU"
 MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
 MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
 MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
 
 ##
+check.transaction.timeLIMITED <-6
 Product <-"MXFK1"
 Price <-0
 BorS <- "" #買(B)或賣(S)
 Daytrade <-"1" #設定當沖(否1是0)
-switch.stopPORT <-5
+# closePositionBY.MA <-20
+switch.stopPORT <-5 #MA5出場
+switch.stopPORT_RSI <-35 #RSI30出場
 .path <-extra.data(name="switch_to.ma", p.mode = "path")
 append.to.file(data=switch.stopPORT
                , path=.path)
@@ -21,8 +30,8 @@ DateFolder <- ""
 result <- "  "
 Qty <-1
 gear <-0
-BASE_portfolio <- 3  #無虧損停利價差
-Stop_portfolio <- 10 #動態停利價差
+BASE_portfolio <- 7  #無虧損停利價差
+Stop_portfolio <- 15 #動態停利價差
 default.enable_stopPORTFOLIO <- 15 #固定停利價差
 Max.DDM <- 0
 default.PORTFOLIO.buffer <-5
@@ -33,9 +42,10 @@ simu <-TRUE
 Auto.positionCLOSE <-FALSE
 enable.STABLE.Stop.PORT <-TRUE #停利功能>>預設非動態停利
 enable.defaultPORT.check <-TRUE #開啟停利功能
+msg.lite <-TRUE
 
-TRENDMark.LONG <-FALSE
-TRENDMark.SHORT <-FALSE
+# TRENDMark.LONG <-FALSE
+# TRENDMark.SHORT <-FALSE
 
 preWORK.name <-c("CURRENTBAR.ADDED")
 preWORK.check <-c(rep(FALSE, length(preWORK.name)))
@@ -58,7 +68,8 @@ SECURTIES.data.path <-finacial.dataparg.gen(realdata.path, date.format, Product,
 
 #設定預設資料源<證卷商>
 switch.DATA.Source <-TRUE #T表示證卷商
-data.path <- data.source.switch(switch.DATA.Source)
+# data.path <- data.source.switch(switch.DATA.Source)
+data.path <- SECURTIES.data.path
 
 enable.STABLE.Stop.PORT.path  <- extra.data(name="enable.STABLE.Stop.PORT", p.mode = "path") #default固定停利
 enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD停利

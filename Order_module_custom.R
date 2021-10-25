@@ -16,7 +16,7 @@ ClosePositionAll<-function(){
 }
 
 #### 最新報價 ####
-Price.current<-function(pr="CL")
+Price.current<-function(data.path=NULL)
 {
 
   # if(!file.exists(data.path))
@@ -32,7 +32,12 @@ Price.current<-function(pr="CL")
   #   result <- strsplit(result, ",") 
   #   result <- result[[1]][x]   
   # }
-  result <- QueryOHCL(data.path = data.path)
+  if(is.null(data.path))
+  {
+    m.data.path <-SECURTIES.data.path
+  }else{m.data.path <-data.path}
+  
+  result <- QueryOHCL(data.path = m.data.path)
 
 }
 
@@ -127,11 +132,11 @@ filename.gen <-function(x=NULL, name)
 
 finacial.dataparg.gen <- function(data.path, date.format, Product, Product.file)
 {
-  data.path <- paste0(data.path
+  result <- paste0(data.path
                       , date.format, "/"
                       , Product, "/"
                       , Product.file)
-  return(data.path)
+  return(result)
 }
 
 data.source.switch <-function(x)
@@ -187,859 +192,856 @@ p_n.sig <-function(x)
   
 }
 
-check.if.deal <-function(force=FALSE, decoded.info=NULL)
+check.ifDeal <-function(decode.info)
 {
-  if(switch.check.if.deal || force)
+  # ANSWER.NULL <- "Nodata"
+  # ANSWER.ALLDeal <-"全部成交"
+  # ANSWER.SOMEDeal <-"部分成交"
+  # ANSWER.ALLCancel <-"全部取消"
+  
+  m.answer <-account.info(by.name="status", info = decode.info) #取出交易結果訊息 
+  if(m.answer == ANSWER.ALLDeal || m.answer == ANSWER.SOMEDeal)
   {
-    .check <-account.info(p.mode="by.name", info=decoded.info)
-    if( .check =="全部成交" ){return(TRUE)}
-    else{return(FALSE)}    
+    return(TRUE)
   }
-  else{return(TRUE)}
-
+    
 }
 
-account.info <- function(code=NULL, p.mode="analyze", info=NULL, name="status", simu=FALSE)
+#[1] "2021102500139494T0EO,全部成交,MXFK1,限賣,16900,1,114317,226,3414338,,7D930,,,,,1,0 "
+
+account.info <- function(code=NULL, by.name=NULL, info)
 {
-  
-  if(p.mode =="analyze")
+  if(!is.null(code))
   {
-    if(code !="SIMU")
-    {
-      .info <-  QueryOrder(code)
-      .info <- strsplit(.info, ",")
-      
-      result <-c(
-        .info[[1]][2]
-        , .info[[1]][3]
-        , .info[[1]][4]
-        , .info[[1]][5]
-        , .info[[1]][6]
-        , .info[[1]][7]
+      if(code !=CODE.SIMU)
+      {
+        .info <-  QueryOrder(code)
+        result <- strsplit(.info, ",")[[1]]
+      }else{ #模擬交易回應
+        result <- c(rep(NULL, 7))
+        result[1] <-code
+        result[2] <-ANSWER.ALLDeal
+        result[5] <-Price.current()
         
-      )      
-    }else
-          {
-            result <- c(rep(NULL, 6))
-            result[1] <-"全部成交"
-            result[4] <-Price.current()
-      
-            result <-c(result, simu)
-          }
-      
-    return(result)    
+        result <-c(result, simu)
+      }
+  #取出DECODED INFO之特定資料
+  }else if(!is.null(by.name)){
+    
+    switch (by.name,
+      order   = {x=1},
+      status  = {x=2},
+      product = {x=3},
+      bors    = {x=4},
+      price   = {x=5},
+      amount  = {x=6},
+      time    = {x=7},
+      x=0
+      )
+    result <-ifelse(x!=0, info[x], "ERROR.")
   }
-  
-  if(p.mode =="by.name")
-  {
-    if(!is.null(info))
-    {
-      switch(name,
-             status ={x<-1},
-             product={x<-2},
-             ls     ={x<-3},
-             price  ={x<-4},
-             amount ={x<-5},
-             period ={x<-6},
-             x=0
-             )
-      if(x ==0){return(0)}
-      else{return(info[x])}
-    }else{return(0)}
    
-  }
+  return(result)  
 
 }
 # 
-# transaction.MGR <-function(pdt =NULL, bors=NULL, pr=NULL, Qty=1, type="LMT")
-# {
-#   if(is.null(pdt))
-#   {
-#     Price <- Product
-#   }else{
-#     Price <- pdt
-#     
-#   }
-#   
-#   BorS <- bors
-#   if(is.null(pr))
-#   {
-#     Price <- Price.current()
-#   }else{
-#     Price <- pr
-#     
-#   }
-#   
-#   if(type =="LMT"){result<- Place.OrderLMT()} #下單
-#   if(type =="MKT"){result<- Place.OrderMKT()} #下單
-#   
-#   return(result)
-# 
-# }
+m.tail <-function(path)
+{
+  price.file <- read.csv(path, header = FALSE)
+  price.tail <- tail(price.file, 1)
+  return(price.tail)
+}
+
+path.MGR <-function(x)
+{
+  
+  switch (x,
+    #設定訊息檔案路徑
+    create.positionLONG.path   = result<- paste0(price.path, "create.POSITIONLong", ".csv"),
+    create.positionSHORT.path  = result<- paste0(price.path, "create.POSITIONShort", ".csv"),
+    
+    close.ALL.path  = result<- paste0(price.path, "close_allPOSITION", ".csv"),
+    price.open.path  = result<- paste0(price.path, "open", ".csv"),
+    price.high.path  = result<- paste0(price.path, "high", ".csv"),
+    price.close.path  = result<- paste0(price.path, "close", ".csv"),
+    price.low.path  = result<- paste0(price.path, "low", ".csv"),
+    price.ma5.path  = result<- paste0(price.path, "_ma5", ".csv"),
+    price.ma10.path  = result<- paste0(price.path, "_ma10", ".csv"),
+    price.ma20.path  = result<- paste0(price.path, "_ma20", ".csv"),  
+    price.Rate_sma5.path  = result<- paste0(price.path, "_Rate_sma5", ".csv"),
+    price.Rate_sma10.path  = result<- paste0(price.path, "_Rate_sma10", ".csv"),
+    price.Rate_sma20.path  = result<- paste0(price.path, "_Rate_sma20", ".csv"), 
+    price.Buyin.path  = result<- paste0(price.path, "Price.buyin", ".csv"), 
+    price.PCL.path  = result<- paste0(price.path, "Price.pcl", ".csv"),
+    #
+    ploar_star.path  = result<- paste0(price.path, "_ploar_star", ".csv"),
+    ploar_star_price.path  = result<- paste0(price.path, "_ploar_star_price", ".csv"),
+    ploar_star_StopLoss.path  = result<- paste0(price.path, "_ploar_star_stopLoss", ".csv"),
+    polar_star_switch.path  = result<- paste0(price.path, "_polar_star_switch", ".csv"),
+    #
+    b_upper.path  = result<- paste0(price.path, "_b_upper", ".csv"),
+    b_lower.path  = result<- paste0(price.path, "_b_lower", ".csv"),
+    #
+    rsi.path  = result<- paste0(price.path, "RSI", ".csv"),
+    rsi_pre.path  = result<- paste0(price.path, "RSI_pre", ".csv"),
+    rsi_ma5.path  = result<- paste0(price.path, "RSI_MA5", ".csv"),
+    #
+    bsrate.path  = result<- paste0(price.path, "_BSRate", ".csv"),
+    bsrateDiff.path <- paste0(price.path, "_BSRateDiff", ".csv"),
+    #
+    op_ma5.path  = result<- paste0(price.path, "_op_ma5", ".csv"),
+    op_ma10.path  = result<- paste0(price.path, "_op_ma10", ".csv"),
+    op_ma20.path  = result<- paste0(price.path, "_op_ma20", ".csv"),
+    op_ma60.path  = result<- paste0(price.path, "_op_ma60", ".csv"),
+    op_ma.path  = result<- paste0(price.path, "_op_ma", ".csv"),
+    #
+    switch_to.ma.path  = result<- paste0(price.path, "switch_to.ma", ".csv"),
+    switch_to.rsi.path  = result<- paste0(price.path, "switch_to.rsi", ".csv"),
+    
+    #
+    Research_Line_Upper.path  = result<- paste0(price.path, "_Research_Line_Upper", ".csv"),
+    Research_Line_Mid.path  = result<-   paste0(price.path, "_Research_Line_Mid", ".csv"),
+    Research_Line_lower.path  = result<- paste0(price.path, "_Research_Line_lower", ".csv"),
+    extremes_Line_Upper.path  = result<- paste0(price.path, "_extremes_Line_Upper", ".csv"),
+    extremes_Line_Mid.path  = result<-   paste0(price.path, "_extremes_Line_Mid", ".csv"),
+    extremes_Line_lower.path  = result<- paste0(price.path, "_extremes_Line_lower", ".csv"),
+    #
+    enable.STABLE.Stop.PORT.path   = result<- paste0(price.path, "enable.stable.Stop.PORT", ".csv"),
+    enable.onlyMDD.path   = result<- paste0(price.path, "enable.onlyMDD", ".csv"),
+    enable.RSI.TrendADDED.path   = result<- paste0(price.path, "enable.RSI.TrendADDED", ".csv"),
+    enable.Bolling.path   = result<- paste0(price.path, "enable.BollingPATH.ADDED", ".csv"),
+    #
+    DISABLE_MXFSIMU.SERVERE.path  = result<- paste0(price.path, "DISABLE_MXFSIMU.SERVERE", ".csv"),
+    DISABLE_AGENT.SERVERE.path  = result<- paste0(price.path, "DISABLE_AGENT.SERVERE", ".csv"),
+    RESET_AGENT.SERVERE.path  = result<- paste0(price.path, "RESET_AGENT.SERVERE", ".csv"),
+    
+    #
+    MA5.CREATE.LONG.path  = result<- paste0(price.path, "MA5.CREATE.LONG", ".csv"),
+    MA10.CREATE.LONG.path  = result<- paste0(price.path, "MA10.CREATE.LONG", ".csv"),
+    MA20.CREATE.LONG.path  = result<- paste0(price.path, "MA20.CREATE.LONG", ".csv"),
+    MA5.CREATE.SHORT.path  = result<- paste0(price.path, "MA5.CREATE.SHORT", ".csv"),
+    MA10.CREATE.SHORT.path  = result<- paste0(price.path, "MA10.CREATE.SHORT", ".csv"),
+    MA20.CREATE.SHORT.path  = result<- paste0(price.path, "MA20.CREATE.SHORT", ".csv"),  
+    #
+    CUSTOM.CREATE.LONG.path  = result<- paste0(price.path, "CUSTOM.CREATE.LONG", ".csv"),
+    CUSTOM.CREATE.SHORT.path  = result<- paste0(price.path, "CUSTOM.CREATE.SHORT", ".csv"),
+    
+    #
+    currentBar.path  = result<- paste0(price.path, "currentBar", ".csv"),
+    msg.lite.path  = result<- paste0(price.path, "msg.lite", ".csv"),
+    #
+    CLOSEPositionByMA.path  = result<- paste0(price.path, "CLOSEPositionByMA", ".csv"),
+    #
+    create.positionLONG.path  = result<- paste0(price.path, "create.positionLONG", ".csv"),
+    create.positionSHORT.path  = result<- paste0(price.path, "create.positionSHORT", ".csv"),
+    enable.STABLE.Stop.PORT.path  = result<- paste0(price.path, "enable.STABLE.Stop.PORT", ".csv"),
+    enable.onlyMDD.path  = result<- paste0(price.path, "enable.onlyMDD", ".csv"),
+    enable.RSI.TrendADDED.path  = result<- paste0(price.path, "enable.RSI.TrendADDED", ".csv"),
+    enable.Bolling.path  = result<- paste0(price.path, "enable.BollingPATH.ADDED", ".csv"),
+    DISABLE_MXFSIMU.SERVERE.path  = result<- paste0(price.path, "DMSS", ".csv"),
+    DISABLE_AGENT.SERVERE.path  = result<- paste0(price.path, "DAGS", ".csv"),
+    RESET_AGENT.SERVERE.path  = result<- paste0(price.path, "RESET_AGENT.SERVERE", ".csv"),
+    close.ALL.path  = result<- paste0(price.path, "close.ALLPOSITION", ".csv")
+
+  )
+  
+    return(result)
+  
+}
 
 extra.data <-function(name="CL", p.mode="num")
 {
-  #設定訊息檔案路徑
-  create.positionLONG.path <- paste0(price.path, "create.POSITIONLong", ".csv")
-  create.positionSHORT.path <- paste0(price.path, "create.POSITIONShort", ".csv")
-  
-  close.ALL.path <- paste0(price.path, "close_allPOSITION", ".csv")
-  price.open.path <- paste0(price.path, "open", ".csv")
-  price.high.path <- paste0(price.path, "high", ".csv")
-  price.close.path <- paste0(price.path, "close", ".csv")
-  price.low.path <- paste0(price.path, "low", ".csv")
-  price.ma5.path <- paste0(price.path, "_ma5", ".csv")
-  price.ma10.path <- paste0(price.path, "_ma10", ".csv")
-  price.ma20.path <- paste0(price.path, "_ma20", ".csv")  
-  price.Rate_sma5.path <- paste0(price.path, "_Rate_sma5", ".csv")
-  price.Rate_sma10.path <- paste0(price.path, "_Rate_sma10", ".csv")
-  price.Rate_sma20.path <- paste0(price.path, "_Rate_sma20", ".csv") 
-  price.Buyin.path <- paste0(price.path, "Price.buyin", ".csv") 
-  price.PCL.path <- paste0(price.path, "Price.pcl", ".csv")
-  #
-  ploar_star.path <- paste0(price.path, "_ploar_star", ".csv")
-  ploar_star_price.path <- paste0(price.path, "_ploar_star_price", ".csv")
-  ploar_star_StopLoss.path <- paste0(price.path, "_ploar_star_stopLoss", ".csv")
-  polar_star_switch.path <- paste0(price.path, "_polar_star_switch", ".csv")
-  #
-  b_upper.path <- paste0(price.path, "_b_upper", ".csv")
-  b_lower.path <- paste0(price.path, "_b_lower", ".csv")
-  #
-  rsi.path <- paste0(price.path, "RSI", ".csv")
-  rsi_pre.path <- paste0(price.path, "RSI_pre", ".csv")
-  rsi_ma5.path <- paste0(price.path, "RSI_MA5", ".csv")
-  #
-  bsrate.path <- paste0(price.path, "_BSRate", ".csv")
-  bsrateDiff.path <- paste0(price.path, "_BSRateDiff", ".csv")
-  #
-  op_ma5.path <- paste0(price.path, "_op_ma5", ".csv")
-  op_ma10.path <- paste0(price.path, "_op_ma10", ".csv")
-  op_ma20.path <- paste0(price.path, "_op_ma20", ".csv")
-  op_ma60.path <- paste0(price.path, "_op_ma60", ".csv")
-  op_ma.path <- paste0(price.path, "_op_ma", ".csv")
-  #
-  switch_to.ma.path <- paste0(price.path, "switch_to.ma", ".csv")
-  switch_to.rsi.path <- paste0(price.path, "switch_to.rsi", ".csv")
   
   #
-  Research_Line_Upper.path <- paste0(price.path, "_Research_Line_Upper", ".csv")
-  Research_Line_Mid.path <-   paste0(price.path, "_Research_Line_Mid", ".csv")
-  Research_Line_lower.path <- paste0(price.path, "_Research_Line_lower", ".csv")
-  extremes_Line_Upper.path <- paste0(price.path, "_extremes_Line_Upper", ".csv")
-  extremes_Line_Mid.path <-   paste0(price.path, "_extremes_Line_Mid", ".csv")
-  extremes_Line_lower.path <- paste0(price.path, "_extremes_Line_lower", ".csv")
-  #
-  enable.STABLE.Stop.PORT.path  <- paste0(price.path, "enable.stable.Stop.PORT", ".csv")
-  enable.onlyMDD.path  <- paste0(price.path, "enable.onlyMDD", ".csv")
-  enable.RSI.TrendADDED.path  <- paste0(price.path, "enable.RSI.TrendADDED", ".csv")
-  enable.Bolling.path  <- paste0(price.path, "enable.BollingPATH.ADDED", ".csv")
-  #
-  DISABLE_MXFSIMU.SERVERE.path <- paste0(price.path, "DISABLE_MXFSIMU.SERVERE", ".csv")
-  DISABLE_AGENT.SERVERE.path <- paste0(price.path, "DISABLE_AGENT.SERVERE", ".csv")
-  RESET_AGENT.SERVERE.path <- paste0(price.path, "RESET_AGENT.SERVERE", ".csv")
-  
-  #
-  MA5.CREATE.LONG.path <- paste0(price.path, "MA5.CREATE.LONG", ".csv")
-  MA10.CREATE.LONG.path <- paste0(price.path, "MA10.CREATE.LONG", ".csv")
-  MA20.CREATE.LONG.path <- paste0(price.path, "MA20.CREATE.LONG", ".csv")
-  MA5.CREATE.SHORT.path <- paste0(price.path, "MA5.CREATE.SHORT", ".csv")
-  MA10.CREATE.SHORT.path <- paste0(price.path, "MA10.CREATE.SHORT", ".csv")
-  MA20.CREATE.SHORT.path <- paste0(price.path, "MA20.CREATE.SHORT", ".csv")  
-  #
-  CUSTOM.CREATE.LONG.path <- paste0(price.path, "CUSTOM.CREATE.LONG", ".csv")
-  CUSTOM.CREATE.SHORT.path <- paste0(price.path, "CUSTOM.CREATE.SHORT", ".csv")
-  
-  #
-  currentBar.path <- paste0(price.path, "currentBar", ".csv")
-  msg.lite.path <- paste0(price.path, "msg.lite", ".csv")
-  #
-  m.tail <-function(path)
-  {
-    price.file <- read.csv(path, header = FALSE)
-    price.tail <- tail(price.file, 1)
-    return(price.tail)
-  }
   operator <- gsub(" ", "", name)
   
-  if(p.mode =="num")
-  {
+  # if(p.mode =="num")
+  # {
     switch(operator,
            
            OP =
              {
-               if(file.exists(price.open.path))
+               m.path <-path.MGR("price.open.path")
+               
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.open <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.open.path), stdout = TRUE))
-                 price.open <- as.character(m.tail(price.open.path))
-                 
-                 return(price.open)
-                }else{return(0)}
-             },
+                 if(file.exists(m.path))
+                 {
+                   price.open <- as.character(m.tail(m.path))
+                   
+                   return(price.open)
+                 }else{return(0)}                 
+               }
+              },
            HI =
              {
-               if(file.exists(price.high.path))
+               m.path <-path.MGR("price.high.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.high <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.high.path), stdout = TRUE))
-                 price.high <- as.character(m.tail(price.high.path))
-                 
-                 return(price.high)
-               }else{return(0)}
-               # 
-               # price.high <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.high.path), stdout = TRUE))
-               # return(price.high)
+                 if(file.exists(m.path))
+                 {
+                   price.high <- as.character(m.tail(m.path))
+                   
+                   return(price.high)
+                 }else{return(0)}
+               }
              },         
            CL =
              {
-               if(file.exists(price.close.path))
+               m.path <-path.MGR("price.close.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.close <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.close.path), stdout = TRUE))
-                 price.close <- as.character(m.tail(price.close.path))
-                 
-                 return(price.close)
-               }else{return(0)}
-               # price.close <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.close.path), stdout = TRUE))
-               # return(price.close)
+                 if(file.exists(m.path))
+                 {
+                   price.close <- as.character(m.tail(m.path))
+                   
+                   return(price.close)
+                 }else{return(0)}                
+               }
+   
              },
            LO =
              {
-               if(file.exists(price.low.path))
+               m.path <-path.MGR("price.low.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.low <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.low.path), stdout = TRUE))
-                 price.low <- as.character(m.tail(price.low.path))
-                 
-                 return(price.low)
-               }else{return(0)}
-               # price.low <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.low.path), stdout = TRUE))
-               # return(price.low)
+                 if(file.exists(m.path))
+                 {
+                   price.low <- as.character(m.tail(m.path))
+                   
+                   return(price.low)
+                 }else{return(0)}                
+               }
+          
              }, 
            MA5 =
              {
-               if(file.exists(price.ma5.path))
+               m.path <-path.MGR("price.ma5.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma5.path), stdout = TRUE))
-                 price.ma5 <- as.character(m.tail(price.ma5.path))
-                 
-                 return(price.ma5)
-               }else{return(0)}
-               # price.ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma5.path), stdout = TRUE))
-               # return(price.ma5)
+                 if(file.exists(m.path))
+                 {
+                   price.ma5 <- as.character(m.tail(m.path))
+                   
+                   return(price.ma5)
+                 }else{return(0)}                
+               }
+    
              },
            MA10 =
              {
-               if(file.exists(price.ma10.path))
+               m.path <-path.MGR("price.ma10.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma10.path), stdout = TRUE))
-                 price.ma10 <- as.character(m.tail(price.ma10.path))
-                 
-                 return(price.ma10)
-               }else{return(0)}
-               # price.ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma10.path), stdout = TRUE))
-               # return(price.ma10)
+                 if(file.exists(m.path))
+                 {
+                   price.ma10 <- as.character(m.tail(m.path))
+                   
+                   return(price.ma10)
+                 }else{return(0)}               
+               }
+        
              },
            MA20 =
              {
-               if(file.exists(price.ma20.path))
+               m.path <-path.MGR("price.ma20.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma20.path), stdout = TRUE))
-                 price.ma20 <- as.character(m.tail(price.ma20.path))
-                 
-                 return(price.ma20)
-               }else{return(0)}
-               # price.ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.ma20.path), stdout = TRUE))
-               # return(price.ma20)
+                 if(file.exists(m.path))
+                 {
+                   price.ma20 <- as.character(m.tail(m.path))
+                   
+                   return(price.ma20)
+                 }else{return(0)}                
+               }
+    
              },
            Rate_sma5 =
              {
-               if(file.exists(price.Rate_sma5.path))
+               m.path <-path.MGR("price.Rate_sma5.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Rate_sma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma5.path), stdout = TRUE))
-                 price.Rate_sma5 <- as.character(m.tail(price.Rate_sma5.path))
-                 
-                 return(price.Rate_sma5)
-               }else{return(0)}
-               # price.Rate_sma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma5.path), stdout = TRUE))
-               # return(price.Rate_sma5)
+                 if(file.exists(m.path))
+                 {
+                   price.Rate_sma5 <- as.character(m.tail(m.path))
+                   
+                   return(price.Rate_sma5)
+                 }else{return(0)}                
+               }
+    
              },
            Rate_sma10 =
              {
-               if(file.exists(price.Rate_sma10.path))
+               m.path <-path.MGR("price.Rate_sma10.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Rate_sma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma10.path), stdout = TRUE))
-                 price.Rate_sma10 <- as.character(m.tail(price.Rate_sma10.path))
-                 
-                 return(price.Rate_sma10)
-               }else{return(0)}
-               # price.Rate_sma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma10.path), stdout = TRUE))
-               # return(price.Rate_sma10)
+                 if(file.exists(m.path))
+                 {
+                   price.Rate_sma10 <- as.character(m.tail(m.path))
+                   
+                   return(price.Rate_sma10)
+                 }else{return(0)}              
+               }
+       
              },
            Rate_sma20 =
              {
-               if(file.exists(price.Rate_sma20.path))
+               m.path <-path.MGR("price.Rate_sma20.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Rate_sma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma20.path), stdout = TRUE))
-                 price.Rate_sma20 <- as.character(m.tail(price.Rate_sma20.path))
-                 
-                 return(price.Rate_sma20)
-               }else{return(0)}
-               # price.Rate_sma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Rate_sma20.path), stdout = TRUE))
-               # return(price.Rate_sma20)
+                 if(file.exists(m.path))
+                 {
+                   price.Rate_sma20 <- as.character(m.tail(m.path))
+                   
+                   return(price.Rate_sma20)
+                 }else{return(0)}               
+               }
+           
              },
            Research_Line_Upper =
              {
-               if(file.exists(Research_Line_Upper.path))
+               m.path <-path.MGR("Research_Line_Upper.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Research_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Upper.path), stdout = TRUE))
-                 price.Research_Line_Upper <- as.character(m.tail(Research_Line_Upper.path))
-                 
-                 return(price.Research_Line_Upper)
-               }else{return(0)}
-               # price.Research_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Upper.path), stdout = TRUE))
-               # return(price.Research_Line_Upper)
+                 if(file.exists(m.path))
+                 {
+                   price.Research_Line_Upper <- as.character(m.tail(m.path))
+                   
+                   return(price.Research_Line_Upper)
+                 }else{return(0)} 
+               }
+          
              },         
            Research_Line_Mid =
              {
-               if(file.exists(Research_Line_Mid.path))
+               m.path <-path.MGR("Research_Line_Mid.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Research_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Mid.path), stdout = TRUE))
-                 price.Research_Line_Mid <- as.character(m.tail(Research_Line_Mid.path))
-                 
-                 return(price.Research_Line_Mid)
-               }else{return(0)}
-               # price.Research_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_Mid.path), stdout = TRUE))
-               # return(price.Research_Line_Mid)
+                 if(file.exists(m.path))
+                 {
+                   price.Research_Line_Mid <- as.character(m.tail(m.path))
+                   
+                   return(price.Research_Line_Mid)
+                 }else{return(0)}                
+               }
+          
              },   
            Research_Line_lower =
              {
-               if(file.exists(Research_Line_lower.path))
+               m.path <-path.MGR("Research_Line_lower.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.Research_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_lower.path), stdout = TRUE))
-                 price.Research_Line_lower <- as.character(m.tail(Research_Line_lower.path))
-                 
-                 return(price.Research_Line_lower)
-               }else{return(0)}
-               # price.Research_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", Research_Line_lower.path), stdout = TRUE))
-               # return(price.Research_Line_lower)
+                 if(file.exists(m.path))
+                 {
+                   price.Research_Line_lower <- as.character(m.tail(m.path))
+                   
+                   return(price.Research_Line_lower)
+                 }else{return(0)}                
+               }
+           
              }, 
            extremes_Line_Upper =
              {
-               if(file.exists(extremes_Line_Upper.path))
+               m.path <-path.MGR("extremes_Line_Upper.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.extremes_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Upper.path), stdout = TRUE))
-                 price.extremes_Line_Upper <- as.character(m.tail(extremes_Line_Upper.path))
-                 
-                 return(price.extremes_Line_Upper)
-               }else{return(0)}
-               # price.extremes_Line_Upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Upper.path), stdout = TRUE))
-               # return(price.extremes_Line_Upper)
+                 if(file.exists(m.path))
+                 {
+                   price.extremes_Line_Upper <- as.character(m.tail(m.path))
+                   
+                   return(price.extremes_Line_Upper)
+                 }else{return(0)}                
+               }
+       
              }, 
            extremes_Line_Mid =
              {
-               if(file.exists(extremes_Line_Mid.path))
+               m.path <-path.MGR("extremes_Line_Mid.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.extremes_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Mid.path), stdout = TRUE))
-                 price.extremes_Line_Mid <- as.character(m.tail(extremes_Line_Mid.path))
-                 
-                 return(price.extremes_Line_Mid)
-               }else{return(0)}
-               # price.extremes_Line_Mid <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_Mid.path), stdout = TRUE))
-               # return(price.extremes_Line_Mid)
+                 if(file.exists(m.path))
+                 {
+                   price.extremes_Line_Mid <- as.character(m.tail(m.path))
+                   
+                   return(price.extremes_Line_Mid)
+                 }else{return(0)}                
+               }
+            
              }, 
            extremes_Line_lower =
              {
-               if(file.exists(extremes_Line_lower.path))
+               m.path <-path.MGR("extremes_Line_lower.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # price.extremes_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_lower.path ), stdout = TRUE))
-                 price.extremes_Line_lower <- as.character(m.tail(extremes_Line_lower.path))
-                 
-                 return(price.extremes_Line_lower)
-               }else{return(0)}
-               # price.extremes_Line_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", extremes_Line_lower.path ), stdout = TRUE))
-               # return(price.extremes_Line_lower)
+                 if(file.exists(m.path))
+                 {
+                   price.extremes_Line_lower <- as.character(m.tail(m.path))
+                   
+                   return(price.extremes_Line_lower)
+                 }else{return(0)}                
+               }
+      
              }, 
            ploar_star =
              {
-               if(file.exists(ploar_star.path))
+               m.path <-path.MGR("ploar_star.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # code.ploar_star <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star.path), stdout = TRUE))
-                 code.ploar_star <- as.character(m.tail(ploar_star.path))
-                 
-                 return(code.ploar_star)
-               }else{return(0)}
-               # code.ploar_star <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star.path), stdout = TRUE))
-               # return(code.ploar_star)
+                 if(file.exists(m.path))
+                 {
+                   code.ploar_star <- as.character(m.tail(m.path))
+                   return(code.ploar_star)
+                 }else{return(0)}                 
+               }
+        
              },
            ploar_star_price =
              {
-               if(file.exists(ploar_star_price.path))
+               m.path <-path.MGR("ploar_star_price.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # code.ploar_star_price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_price.path), stdout = TRUE))
-                 code.ploar_star_price <- as.character(m.tail(ploar_star_price.path))
-                 
-                 return(code.ploar_star_price)
-               }else{return(0)}
-               # code.ploar_star_price <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_price.path), stdout = TRUE))
-               # return(code.ploar_star_price)
+                 if(file.exists(m.path))
+                 {
+                   code.ploar_star_price <- as.character(m.tail(m.path))
+                   
+                   return(code.ploar_star_price)
+                 }else{return(0)}                
+               }
+      
              },
            ploar_star_stopLoss =
              {
-               if(file.exists(ploar_star_StopLoss.path))
+               m.path <-path.MGR("ploar_star_StopLoss.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # code.ploar_star_stopLoss <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_StopLoss.path), stdout = TRUE))
-                 code.ploar_star_stopLoss <- as.character(m.tail(ploar_star_StopLoss.path))
-                 
-                 return(code.ploar_star_stopLoss)
-               }else{return(0)}
-               # code.ploar_star_stopLoss <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", ploar_star_StopLoss.path), stdout = TRUE))
-               # return(code.ploar_star_stopLoss)
+                 if(file.exists(m.path))
+                 {
+                   code.ploar_star_stopLoss <- as.character(m.tail(m.path))
+                   
+                   return(code.ploar_star_stopLoss)
+                 }else{return(0)}                
+               }
+      
              },
            polar_star_switch =
              {
-               if(file.exists(polar_star_switch.path))
+               m.path <-path.MGR("polar_star_switch.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
                {
-                 # code.polar_star_switch.path <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", polar_star_switch.path), stdout = TRUE))
-                 code.polar_star_switch.path <- as.character(m.tail(polar_star_switch.path))
-                 
-                 return(code.polar_star_switch.path)
-               }else{return(0)}
-               # code.polar_star_switch.path <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", polar_star_switch.path), stdout = TRUE))
-               # return(code.polar_star_switch.path)
+                 if(file.exists(m.path))
+                 {
+                   code.polar_star_switch.path <- as.character(m.tail(m.path))
+                   
+                   return(code.polar_star_switch.path)
+                 }               
+               }
+           
              },           
            
            B_UP =
              {
-               # price.b_upper <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_upper.path), stdout = TRUE))
-               price.b_upper <- as.character(m.tail(b_upper.path))
-               
-               return(price.b_upper)
+               m.path <-path.MGR("b_upper.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.b_upper <- as.character(m.tail(m.path))
+                 return(price.b_upper)                
+               }
+     
              },
            B_LO =
              {
-               # price.b_lower <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", b_lower.path), stdout = TRUE))
-               price.b_lower <- as.character(m.tail(b_lower.path))
-               
-               return(price.b_lower)
+               m.path <-path.MGR("b_lower.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.b_lower <- as.character(m.tail(m.path))
+                 return(price.b_lower)         
+               }
              },
            RSI =
              {
-               # price.rsi <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi.path), stdout = TRUE))
-               price.rsi <- as.character(m.tail(rsi.path))
-               
-               return(price.rsi)
+               m.path <-path.MGR("rsi.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.rsi <- as.character(m.tail(m.path))
+                 return(price.rsi)    
+               }
              },
            RSI_PRE =
              {
-               # price.rsi.pre <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_pre.path), stdout = TRUE))
-               price.rsi.pre <- as.character(m.tail(rsi_pre.path))
-               
-               return(price.rsi.pre)
+               m.path <-path.MGR("rsi_pre.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.rsi.pre <- as.character(m.tail(m.path))
+                 return(price.rsi.pre)        
+               }
              },
            RSI_MA5 =
              {
-               # price.rsi_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", rsi_ma5.path), stdout = TRUE))
-               price.rsi_ma5 <- as.character(m.tail(rsi_ma5.path))
-               
-               return(price.rsi_ma5)
+               m.path <-path.MGR("rsi_ma5.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.rsi_ma5 <- as.character(m.tail(path.MGR("rsi_ma5.path")))
+                 return(price.rsi_ma5)          
+               }
              },
            BSRate =
              {
-               # price.bsrate <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrate.path), stdout = TRUE))
-               price.bsrate <- as.character(m.tail(bsrate.path))
-               
-               return(price.bsrate)
+               m.path <-path.MGR("bsrate.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.bsrate <- as.character(m.tail(m.path))
+                 return(price.bsrate)       
+               }
              },
            BSRateDiff =
              {
-               # price.bsrateDiff <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", bsrateDiff.path), stdout = TRUE))
-               price.bsrateDiff <- as.character(m.tail(bsrateDiff.path))
-               
-               return(price.bsrateDiff)
+               m.path <-path.MGR("bsrateDiff.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.bsrateDiff <- as.character(m.tail(m.path))
+                 return(price.bsrateDiff)      
+               }
              },
            op_ma5 =
              {
-               # price.op_ma5 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma5.path), stdout = TRUE))
-               price.op_ma5 <- as.character(m.tail(op_ma5.path))
-               
-               return(price.op_ma5)
+               m.path <-path.MGR("op_ma5.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.op_ma5 <- as.character(m.tail(m.path))
+                 return(price.op_ma5)     
+               }
              },
            op_ma10 =
              {
-               # price.op_ma10 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma10.path), stdout = TRUE))
-               price.op_ma10 <- as.character(m.tail(op_ma10.path))
-               
-               return(price.op_ma10)
+               m.path <-path.MGR("op_ma10.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.op_ma10 <- as.character(m.tail(m.path))
+                 return(price.op_ma10)      
+               }
              },
            op_ma20 =
              {
-               # price.op_ma20 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma20.path), stdout = TRUE))
-               price.op_ma20 <- as.character(m.tail(op_ma20.path))
-               
-               return(price.op_ma20)
+               m.path <-path.MGR("op_ma20.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.op_ma20 <- as.character(m.tail(m.path))
+                 return(price.op_ma20)    
+               }
              },
            op_ma60 =
              {
-               # price.op_ma60 <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma60.path), stdout = TRUE))
-               price.op_ma60 <- as.character(m.tail(op_ma60.path))
-               
-               return(price.op_ma60)
+               m.path <-path.MGR("op_ma60.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.op_ma60 <- as.character(m.tail(m.path))
+                 return(price.op_ma60)    
+               }
              },
-           price.Buyin ={
-             if(file.exists(price.Buyin.path))
+           price.Buyin =
              {
-               # price.Buyin <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Buyin.path), stdout = TRUE))
-               price.Buyin <- as.character(m.tail(price.Buyin.path))
-               
-               return(price.Buyin)
-             }else{return(0)}
-                # price.Buyin <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.Buyin.path), stdout = TRUE))
-                # return(price.Buyin)
+               m.path <-path.MGR("price.Buyin.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 if(file.exists(m.path))
+                 {
+                   price.Buyin <- as.character(m.tail(m.path))
+                   
+                   return(price.Buyin)
+                 }else{return(0)}    
+               }
+       
              },
-           price.PCL ={
-             if(file.exists(price.PCL.path))
+           price.PCL =
+            {
+               m.path <-path.MGR("price.PCL.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 if(file.exists(m.path))
+                 {
+                   price.PCL <- as.character(m.tail(m.path))
+                   
+                   return(price.PCL)
+                 }else{return(0)}    
+               }
+            },           
+           MA5.CREATE.LONG =
              {
-               # price.PCL <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", price.PCL.path), stdout = TRUE))
-               price.PCL <- as.character(m.tail(price.PCL.path))
-               
-               return(price.PCL)
-             }else{return(0)}
-           },           
-           # MA5.CREATE.LONG ={
-           #   return(MA5.CREATE.LONG.path)
-           # },
-           MA5.CREATE.LONG ={
-             if(file.exists(MA5.CREATE.LONG.path))
-             {
-               # price.MA5.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.LONG.path), stdout = TRUE))
-               price.MA5.CREATE.LONG <- as.character(m.tail(MA5.CREATE.LONG.path))
-               
-               return(price.MA5.CREATE.LONG)
-             }else{return(0)}
+               m.path <-path.MGR("MA5.CREATE.LONG.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 if(file.exists(m.path))
+                 {
+                   price.MA5.CREATE.LONG <- as.character(m.tail(m.path))
+                   
+                   return(price.MA5.CREATE.LONG)
+                 }else{return(0)}      
+               }
+       
              },
-           MA10.CREATE.LONG ={
-             if(file.exists(MA10.CREATE.LONG.path))
+           MA10.CREATE.LONG =
              {
-               # price.MA10.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.LONG.path), stdout = TRUE))
-               price.MA10.CREATE.LONG <- as.character(m.tail(MA10.CREATE.LONG.path))
-               
-               return(price.MA10.CREATE.LONG)
-             }else{return(0)}
+               m.path <-path.MGR("MA10.CREATE.LONG.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 if(file.exists(m.path))
+                 {
+                   price.MA10.CREATE.LONG <- as.character(m.tail(m.path))
+                   
+                   return(price.MA10.CREATE.LONG)
+                 }else{return(0)}   
+               }
+           
              },
            MA20.CREATE.LONG ={
-             if(file.exists(MA20.CREATE.LONG.path))
+             m.path <-path.MGR("MA20.CREATE.LONG.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.MA20.CREATE.LONG <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.LONG.path), stdout = TRUE))
-               price.MA20.CREATE.LONG <- as.character(m.tail(MA20.CREATE.LONG.path))
-               
-               return(price.MA20.CREATE.LONG)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.MA20.CREATE.LONG <- as.character(m.tail(m.path))
+                 
+                 return(price.MA20.CREATE.LONG)
+               }else{return(0)}    
+             }
+     
            },
            MA5.CREATE.SHORT ={
-             if(file.exists(MA5.CREATE.SHORT.path))
+             m.path <-path.MGR("MA5.CREATE.SHORT.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.MA5.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA5.CREATE.SHORT.path), stdout = TRUE))
-               price.MA5.CREATE.SHORT <- as.character(m.tail(MA5.CREATE.SHORT.path))
-               
-               return(price.MA5.CREATE.SHORT)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.MA5.CREATE.SHORT <- as.character(m.tail(m.path))
+                 
+                 return(price.MA5.CREATE.SHORT)
+               }else{return(0)}    
+             }
+         
            },
            MA10.CREATE.SHORT ={
-             if(file.exists(MA10.CREATE.SHORT.path))
+             m.path <-path.MGR("MA10.CREATE.SHORT.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               
-               # price.MA10.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA10.CREATE.SHORT.path), stdout = TRUE))
-               price.MA10.CREATE.SHORT <- as.character(m.tail(MA10.CREATE.SHORT.path))
-               
-               return(price.MA10.CREATE.SHORT)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 
+                 price.MA10.CREATE.SHORT <- as.character(m.tail(m.path))
+                 
+                 return(price.MA10.CREATE.SHORT)
+               }else{return(0)}    
+             }
            },
            MA20.CREATE.SHORT ={
-             if(file.exists(MA20.CREATE.SHORT.path))
+             m.path <-path.MGR("MA20.CREATE.SHORT.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.MA20.CREATE.SHORT <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", MA20.CREATE.SHORT.path), stdout = TRUE))
-               price.MA20.CREATE.SHORT <- as.character(m.tail(MA20.CREATE.SHORT.path))
-               
-               return(price.MA20.CREATE.SHORT)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.MA20.CREATE.SHORT <- as.character(m.tail(m.path))
+                 
+                 return(price.MA20.CREATE.SHORT)
+               }else{return(0)}    
+             }
            },
            switch_to.ma ={
-             if(file.exists(switch_to.ma.path))
+             m.path <-path.MGR("switch_to.ma.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
-               price.switch_to.ma <- as.character(m.tail(switch_to.ma.path))
-               
-               return(price.switch_to.ma)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.switch_to.ma <- as.character(m.tail(m.path))
+                 
+                 return(price.switch_to.ma)
+               }else{return(0)}  
+             }
            },
            switch_to.rsi ={
-             if(file.exists(switch_to.rsi.path))
+             m.path <-path.MGR("switch_to.rsi.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.switch_to.ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", switch_to.ma.path), stdout = TRUE))
-               price.switch_to.rsi <- as.character(m.tail(switch_to.rsi.path))
-               
-               return(price.switch_to.rsi)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.switch_to.rsi <- as.character(m.tail(m.path))
+                 
+                 return(price.switch_to.rsi)
+               }else{return(0)}    
+             }
            },          
            currentBar ={
-             if(file.exists(currentBar.path))
+             m.path <-path.MGR("currentBar.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
-               price.currentBar <- as.character(m.tail(currentBar.path))
-               
-               return(price.currentBar)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.currentBar <- as.character(m.tail(m.path))
+                 
+                 return(price.currentBar)
+               }else{return(0)}  
+             }
            },
            CUSTOM.CREATE.LONG ={
-             if(file.exists(CUSTOM.CREATE.LONG.path))
+             m.path <-path.MGR("CUSTOM.CREATE.LONG.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
-               price.CUSTOM.CREATE.LONG <- as.character(m.tail(CUSTOM.CREATE.LONG.path))
-               
-               return(price.CUSTOM.CREATE.LONG)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.CUSTOM.CREATE.LONG <- as.character(m.tail(m.path))
+                 
+                 return(price.CUSTOM.CREATE.LONG)
+               }else{return(0)}    
+             }
            },
            CUSTOM.CREATE.SHORT ={
-             if(file.exists(CUSTOM.CREATE.SHORT.path))
+             m.path <-path.MGR("CUSTOM.CREATE.SHORT.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
-               price.CUSTOM.CREATE.SHORT <- as.character(m.tail(CUSTOM.CREATE.SHORT.path))
-               
-               return(price.CUSTOM.CREATE.SHORT)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.CUSTOM.CREATE.SHORT <- as.character(m.tail(m.path))
+                 
+                 return(price.CUSTOM.CREATE.SHORT)
+               }else{return(0)}  
+             }
            },
            msg.lite ={
-             if(file.exists(msg.lite.path))
+             m.path <-path.MGR("msg.lite.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
              {
-               # price.currentBar <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", currentBar.path), stdout = TRUE))
-               price.msg.lite <- as.character(m.tail(msg.lite.path))
-               
-               return(price.msg.lite)
-             }else{return(0)}
+               if(file.exists(m.path))
+               {
+                 price.msg.lite <- as.character(m.tail(m.path))
+                 
+                 return(price.msg.lite)
+               }else{return(0)}   
+             }
+           },
+           CLOSEPositionByMA ={
+             m.path <-path.MGR("CLOSEPositionByMA.path")
+             if(p.mode =="path"){return(m.path)}
+             if(p.mode =="num")
+             {
+               if(file.exists(m.path))
+               {
+                 price.CLOSEPositionByMA <- as.character(m.tail(m.path))
+                 
+                 return(price.CLOSEPositionByMA)
+               }else{return(0)}   
+             }
            },
            op_ma =
              {
-               # price.op_ma <- as.numeric(system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ", op_ma.path), stdout = TRUE))
-               price.op_ma <- as.character(m.tail(op_ma.path))
-               
-               return(price.op_ma)
+               m.path <-path.MGR("op_ma.path")
+               if(p.mode =="path"){return(m.path)}
+               if(p.mode =="num")
+               {
+                 price.op_ma <- as.character(m.tail(m.path))
+                 
+                 return(price.op_ma)           
+               }
+       
+             },
+           ##
+           create.positionLONG =
+             {
+               m.path <-path.MGR("create.positionLONG.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           create.positionSHORT =
+             {
+               m.path <-path.MGR("create.positionSHORT.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           
+           
+           enable.STABLE.Stop.PORT =
+             {
+               m.path <-path.MGR("enable.STABLE.Stop.PORT.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           enable.onlyMDD =
+             {
+               m.path <-path.MGR("enable.onlyMDD.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           enable.RSI.TrendADDED =
+             {
+               m.path <-path.MGR("enable.RSI.TrendADDED.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           enable.BollingPATH.ADDED =
+             {
+               m.path <-path.MGR("enable.Bolling.path")
+               if(p.mode =="path"){return(m.path)}
+             },
+           DMSS ={
+             return(path.MGR("DISABLE_MXFSIMU.SERVERE.path"))
+           },
+           DAGS ={
+             m.path <-path.MGR("DISABLE_AGENT.SERVERE.path")
+             if(p.mode =="path"){return(m.path)}
+           },           
+           RESET_AGENT.SERVERE ={
+             m.path <-path.MGR("RESET_AGENT.SERVERE.path")
+             if(p.mode =="path"){return(m.path)}
+           },  
+           
+           close.ALLPOSITION =
+             {
+               m.path <-path.MGR("close.ALL.path")
+               if(p.mode =="path"){return(m.path)}
              }
     )    
   }
 
-  if(p.mode =="path")
-  {
-    switch(operator,
+ 
+  
+  
 
-            create.positionLONG =
-             {
-               return(create.positionLONG.path)
-             },
-           create.positionSHORT =
-             {
-               return(create.positionSHORT.path)
-             },
-           OP =
-             {
-               return(price.open.path)
-             },
-           HI =
-             {
-               return(price.high.path)
-             },
-           CL =
-             {
-               return(price.close.path)
-             },
-           LO =
-             {
-               return(price.low.path)
-             },
-           MA5 =
-             {
-               return(price.ma5.path)
-             },
-           MA10 =
-             {
-               return(price.ma10.path)
-             },
-           MA20 =
-             {
-               return(price.ma20.path)
-             },
-           Rate_sma5 =
-             {
-               return(price.Rate_sma5.path)
-             },
-           Rate_sma10 =
-             {
-               return(price.Rate_sma10.path)
-             },
-           Rate_sma20 =
-             {
-               return(price.Rate_sma20.path)
-             },
-           Research_Line_Upper =
-             {
-               return(Research_Line_Upper.path)
-             },
-           Research_Line_Mid =
-             {
-               return(Research_Line_Mid.path)
-             },
-           Research_Line_lower =
-             {
-               return(Research_Line_lower.path)
-             },
-           extremes_Line_Upper =
-             {
-               return(extremes_Line_Upper.path)
-             },
-           extremes_Line_Mid =
-             {
-               return(extremes_Line_Mid.path)
-             },
-           extremes_Line_lower =
-             {
-               return(extremes_Line_lower.path)
-             },
-           ploar_star =
-             {
-               return(ploar_star.path)
-             },
-           ploar_star_price =
-             {
-               return(ploar_star_price.path)
-             },
-           ploar_star_stopLoss =
-             {
-               return(ploar_star_StopLoss.path)
-             },
-           polar_star_switch =
-             {
-               return(polar_star_switch.path)
-             }, 
-           B_UP =
-             {
-               return(b_upper.path)
-             },
-           B_LO =
-             {
-               return(b_lower.path)
-             },
-           RSI =
-             {
-               return(rsi.path)
-             },
-           RSI_PRE =
-             {
-               return(rsi_pre.path)
-             },
-           RSI_MA5 =
-             {
-               return(rsi_ma5.path)
-             },
-           BSRate =
-             {
-               return(bsrate.path)
-             },
-           BSRateDiff =
-             {
-               return(bsrateDiff.path)
-             },
-           op_ma5 =
-             {
-               return(op_ma5.path)
-             },
-           op_ma10 =
-             {
-               return(op_ma10.path)
-             },
-           op_ma20 =
-             {
-               return(op_ma20.path)
-             },
-           op_ma60 =
-             {
-               return(op_ma60.path)
-             },
-           op_ma =
-             {
-               return(op_ma.path)
-             },
-           
-           enable.STABLE.Stop.PORT =
-             {
-               return(enable.STABLE.Stop.PORT.path)
-             },
-           enable.onlyMDD =
-             {
-               return(enable.onlyMDD.path)
-             },
-           enable.RSI.TrendADDED =
-             {
-               return(enable.RSI.TrendADDED.path)
-             },
-           enable.BollingPATH.ADDED =
-             {
-               return(enable.Bolling.path)
-             },
-           DMSS ={
-               return(DISABLE_MXFSIMU.SERVERE.path)
-             },
-           DAGS ={
-             return(DISABLE_AGENT.SERVERE.path)
-           },           
-           price.Buyin ={
-              return(price.Buyin.path)
-             },
-           price.PCL ={
-             return(price.PCL.path)
-           },
-           MA5.CREATE.LONG ={
-             return(MA5.CREATE.LONG.path)
-           },
-           MA10.CREATE.LONG ={
-             return(MA10.CREATE.LONG.path)
-           },
-           MA20.CREATE.LONG ={
-             return(MA20.CREATE.LONG.path)
-           },
-           MA5.CREATE.SHORT ={
-             return(MA5.CREATE.SHORT.path)
-           },
-           MA10.CREATE.SHORT ={
-             return(MA10.CREATE.SHORT.path)
-           },
-           MA20.CREATE.SHORT ={
-             return(MA20.CREATE.SHORT.path)
-           },
-           RESET_AGENT.SERVERE ={
-             return(RESET_AGENT.SERVERE.path)
-           },  
-           switch_to.ma ={
-             return(switch_to.ma.path)
-           },  
-           switch_to.rsi ={
-             return(switch_to.rsi.path)
-           },
-           currentBar ={
-             return(currentBar.path)
-           }, 
-           CUSTOM.CREATE.LONG ={
-             return(CUSTOM.CREATE.LONG.path)
-           }, 
-           CUSTOM.CREATE.SHORT ={
-             return(CUSTOM.CREATE.SHORT.path)
-           },
-           msg.lite ={
-             return(msg.lite.path)
-           },
-           close.ALLPOSITION =
-             {
-               return(close.ALL.path)
-             }
-    )
-  }
-  
-  
-}
 
 

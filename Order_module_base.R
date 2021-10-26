@@ -4,19 +4,19 @@
 ExecPath <- "C:/Users/linus/Documents/Project/6.APITols/YuantaSmart API/"
 Product <- ""
 #### 市價委託單 ####
-OrderMKT<-function(Product,BorS,Qty){
+OrderMKT<-function(Product, .BorS, .Qty, .Daytrade){
     
   # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
-  OrderNo <- system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,'0',Qty,'MKT',"IOC",'1'),stdout = TRUE)
+  OrderNo <- system2(paste0(ExecPath,'Order.exe'),args=paste(Product,.BorS,'0',.Qty,'MKT',"IOC", .Daytrade),stdout = TRUE)
   # 回傳委託序號
   return(OrderNo)
 }
 
 #### 限價委託單 ####
-OrderLMT<-function(Product,BorS,Price,Qty){
+OrderLMT<-function(Product, .BorS, .Price, .Qty, .Daytrade){
   
   # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
-  OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",'1'),stdout = TRUE)
+  OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,.BorS,.Price,.Qty,'LMT',"ROD",.Daytrade),stdout = TRUE)
   # 回傳委託序號
   return(OrderNo)
 }
@@ -65,8 +65,8 @@ QueryMatch<-function(OrderNo){
 }
 
 #### 限價單到期轉市價單 ####
-LMT2MKT <- function(Product,BorS,Price,Qty,Sec){
-  OrderNo<-system2(paste0(ExecPath,'Order.exe') ,args=paste(Product,BorS,Price,Qty,'LMT','ROD','1'),stdout = TRUE)
+LMT2MKT <- function(Product,.BorS,.Price,.Qty, .Daytrade, Sec){
+  OrderNo<-system2(paste0(ExecPath,'Order.exe') ,args=paste(Product,.BorS,.Price,.Qty,'LMT','ROD',.Daytrade),stdout = TRUE)
   to <- Sys.time()
   while(as.numeric(difftime(Sys.time(), to, u = 'secs')) < Sec){
     if(isTRUE(QueryMatch(OrderNo))){
@@ -74,13 +74,13 @@ LMT2MKT <- function(Product,BorS,Price,Qty,Sec){
     }
   }
   CancelOrder(OrderNo)
-  Match<-OrderMKT(Product,BorS,Qty)
+  Match<-OrderMKT(Product,.BorS,.Qty)
   return(Match)
 }
 
 #### 限價單到期轉刪單 ####
-LMT2DEL <- function(Product,BorS,Price,Qty,Sec){
-  OrderNo<-system2(paste0(ExecPath,'Order.exe') ,args=paste(Product,BorS,Price,Qty,'LMT','ROD','1'),stdout = TRUE)
+LMT2DEL <- function(Product, .BorS, .Price, .Qty, .Daytrade, Sec){
+  OrderNo<-system2(paste0(ExecPath,'Order.exe') ,args=paste(Product,.BorS,.Price,.Qty,'LMT','ROD',.Daytrade),stdout = TRUE)
   to <- Sys.time()
   while(as.numeric(difftime(Sys.time(), to, u = 'secs')) < Sec){
     if(isTRUE(QueryMatch(OrderNo))){
@@ -124,8 +124,55 @@ QueryUnfinished<-function(){
 #### 行情 取用 ####
 QueryOHCL<-function(data.path){
   #system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", n, " ",data.path), stdout = TRUE)
-  price.file <- read.csv(data.path, header = FALSE)
-  price.tail <- tail(price.file, 1)
-  single.price <- as.numeric(price.tail[3])
-  return(single.price)
+  .Price.file <- read.csv(data.path, header = FALSE)
+  .Price.tail <- tail(.Price.file, 1)
+  single.Price <- as.numeric(.Price.tail[3])
+  return(single.Price)
+}
+
+#### 緊急平倉 ####
+ClosePositionAll<-function(simu.mode=TRUE){
+  if (!simu.mode){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
+    OrderNo<-system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    return("SIMU")
+    
+  }  
+}
+
+#### 限價委託單 ####
+Place.OrderLMT<-function(.BorS, .Price, .Qty, .Daytrade, simu.mode=TRUE)
+{
+  
+  order.cmd <- ""
+  
+  if (!simu.mode){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
+    order.cmd <-paste(Product, .BorS, .Price, .Qty, 'LMT', "ROD", .Daytrade)
+    OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    return("SIMU")
+  }
+}
+
+#### 市價委託單 ####
+Place.OrderMKT<-function(.BorS, .Qty, .Daytrade, simu.mode=TRUE)
+{
+  
+  order.cmd <- ""
+  
+  if (!simu.mode){
+    # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
+    order.cmd <- paste(Product, .BorS, '0', .Qty, 'MKT', "IOC", .Daytrade)
+    OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
+    # 回傳委託序號
+    return(OrderNo)
+  }else{
+    return("SIMU")
+  }
 }

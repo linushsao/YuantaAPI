@@ -1,103 +1,4 @@
 
-#### (建倉)多重策略 ####
-Position.multi.create<-function()
-{
- 
-  for.LONG <- 1
-  for.SHORT <- -1 
-  Buyin <- "B"
-  Sellout <- "S"
-  msg.North.start <- -1
-  msg.South.start <- 1
-  local.msg <-""
-  action <- as.numeric(readline("建倉條件[RSI.Switch(1)極星(2)均線(3)] :"))
-  cond.enable <-FALSE
-  
-  while(TRUE)
-  {
-    
-    #讀取現價  
-    # Price <- extra.data(name="CL")  
-    Price <- as.numeric(Price.current())
-    #讀取建倉條件
-    #RSI法
-    if(action ==1 && !cond.enable)
-    {
-      polar_star_switch <-as.numeric(extra.data(name="polar_star_switch"))
-      enable.north.star <-(polar_star_switch <0)
-      enable.south.star <-(polar_star_switch >0)
-      
-      cond.enable <-(enable.north.star || enable.south.star)
-      local.msg <- paste("<RSI.Switch建倉法>", price.RSI)
-    }
-    
-    #極星法
-    if(action ==2 && !cond.enable)
-    {
-      local.msg <- "<極星建倉法>"
-      
-      LongShort <- readline("(1)Long(2)Short :")
-      
-
-      enable.north.star <- (code.polar_star ==msg.North.start &&
-                              Price >price.polar_star)
-      enable.south.star <- (code.polar_star ==msg.South.start &&
-                              Price <price.polar_star)
-      cond.enable <-(enable.north.star || enable.south.star)
-    }
-
-    #均線法
-    if(action ==3 && !cond.enable)
-    {
-      local.msg <- "<均線建倉法>"
-      #極星類型
-      code.polar_star <- as.numeric(extra.data(name="ploar_star"))
-      #極星建倉點
-      price.polar_star <- as.numeric(extra.data(name="ploar_star_price"))
-      
-      enable.north.star <- (code.polar_star ==msg.North.start &&
-                              Price >price.polar_star)
-      enable.south.star <- (code.polar_star ==msg.South.start &&
-                              Price <price.polar_star)
-      cond.enable <-(enable.north.star || enable.south.star)
-    }   
-    #判斷是否啟動建倉
-    if (cond.enable)
-    {    
-      
-      # 設定建倉
-      if (enable.north.star){BorS =Sellout} 
-      if (enable.south.star){BorS =Buyin} 
-      
-      #執行建倉
-      # BorS <- "B"
-      Price <- Price.current()
-      result <- Place.OrderLMT()
-      beep(sound = 5)
-      Price.buyin <- as.numeric(Price)
-      PCL <- ifelse(BorS ==Buyin, msg.South.start, msg.North.start)
-      print(paste("[動作] 執行建倉價位 :", Price, BorS))
-      
-      if(Auto.positionCLOSE)
-      {
-        Sys.sleep(1)
-        beep(sound = 2)
-        Position.stop()
-        Price.buyin <-0
-        PCL <-0
-      }  
-      break
-      
-    }
-    
-    #
-    print(paste("[待命中] :", Price, local.msg))
-    Sys.sleep(0.20) 
-    
-  }  
-  
-}
-
 #### (平倉)動態停損停利 ####
 Position.stop<-function()
 {
@@ -107,7 +8,6 @@ Position.stop<-function()
   for.SHORT <- -1
   Price.diff <-0 #漲跌幅
   Price.ddm <-0  #動態停利價
-  # Stop_loss.price <-0
   ddm.Ratio <-0
   ddm.times <-0
   ddm.times.lmited <-3
@@ -118,7 +18,6 @@ Position.stop<-function()
   Price.in <-Price.buyin 
   Price.reachLIMITED.times.Long <-0
   Price.reachLIMITED.times.Short <-0
-  # Price.reachLIMITED.times.Limited <-2
   Price.RECeiling.PRE <- 0
   Price.REFloor.PRE   <- 0
   Price.curr.PRE <-0
@@ -126,16 +25,12 @@ Position.stop<-function()
   alarm_DDM <- "  "
   alarm_SP <- "  "
   
-  # p.mode.switch <- p.mode
-  
   REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
   CHECK.ClosePOSITION <- c(rep(FALSE, 9))
   
   while(TRUE)
   {
-    # .check <-account.info(p.mode="by.name", info=transaction)
-    # if( .check !="全部成交" ){break}
-    
+  
     #目前價位
     Price.curr <- as.numeric(Price.current())
     # Price.curr <- extra.data(name="CL")
@@ -197,7 +92,8 @@ Position.stop<-function()
           
     }
     
-    #檢查停損
+    #平倉
+    ##檢查停損
 
      if(PCL ==for.LONG && 
         (
@@ -208,7 +104,7 @@ Position.stop<-function()
         )
      )
      {
-       if.safeClose(bs="MS") 
+       result <- ClosePositionAll(simu.mode = simu)
        beep(sound = 7)
        print(paste("[動作] 執行多頭停損價位 :", Price.curr, "<", Price.in))
        break #回到主MENU
@@ -223,7 +119,7 @@ Position.stop<-function()
        )
      )
      {
-       if.safeClose(bs="MB")
+       if.safeClose(bs="MB", simu.mode = simu)
        beep(sound = 7)
        print(paste("[動作] 執行空頭停損價位 :", Price.curr, "<",Price.in))
        break #回到主MENU
@@ -348,14 +244,14 @@ Position.stop<-function()
                     {
                       if(PCL ==for.LONG)
                       {
-                        if.safeClose(bs="S")
+                        if.safeClose(BorS="S", Price, Qty, Daytrade, simu.mode=simu)
                         beep(sound = 8)
                         print(paste("[動作] 執行多頭保本停利價位 :", Price.curr, Price.diff, "<",ddm.times.keepNOLoss, "/",ALL.ddm.times.keepNOLoss,">"))
                         break
                       }
                       if(PCL ==for.SHORT)
                       {
-                        if.safeClose(bs="B")
+                        if.safeClose(BorS="B", Price, Qty, Daytrade, simu.mode=simu)
                         beep(sound = 8)
                         print(paste("[動作] 執行空頭保本停利價位 :", Price.curr, Price.diff, "<",ddm.times.keepNOLoss, "/",ALL.ddm.times.keepNOLoss,">"))
                         break
@@ -397,14 +293,14 @@ Position.stop<-function()
                     {
                       if(PCL ==for.LONG)
                       {
-                        if.safeClose(bs="S")
+                        if.safeClose(BorS="S", Price, Qty, Daytrade, simu.mode=simu)
                         beep(sound = 8)
                         print(paste("[動作] 執行多頭回檔停利價位 :", Price.curr, ddm.times))
                         break
                       }
                       if(PCL ==for.SHORT)
                       {
-                        if.safeClose(bs="B")
+                        if.safeClose(BorS="B", Price, Qty, Daytrade, simu.mode=simu)
                         beep(sound = 8)
                         print(paste("[動作] 執行空頭回檔停利價位 :", Price.curr, ddm.times))
                         break
@@ -428,14 +324,14 @@ Position.stop<-function()
           {
               if(PCL ==for.LONG)
               {
-                if.safeClose(bs="S")
+                if.safeClose(BorS="S", Price, Qty, Daytrade, simu.mode=simu)
                 beep(sound = 8)
                 print(paste("[動作] 執行多頭撐壓停利價位 :", Price.curr, Price.diff, ddm.times))
                 break
               }
               if(PCL ==for.SHORT)
               {
-                if.safeClose(bs="B")
+                if.safeClose(BorS="B", Price, Qty, Daytrade, simu.mode=simu)
                 beep(sound = 8)
                 print(paste("[動作] 執行空頭撐壓停利價位 :", Price.curr, Price.diff, ddm.times))
                 break

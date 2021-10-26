@@ -1,4 +1,4 @@
-# Order mudule base
+#
 rm(list=ls())
 #CUstom LIB.
 LIBRS <- c('roxygen2')
@@ -26,14 +26,28 @@ source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_config.R")
 ##
-#MAIN# 
+
+#測試連線結果
+print(paste("[動作] 測試卷商連線品質..."))
+
+check.result <-c()
+if(connect.test(x=6))
+{
+  check.result <-(paste("[訊息] 聯線正常."))
+  
+}else{
+  check.result <- (paste("[錯誤] 無法建立聯線."))
+}
+print(check.result)
+
+action <- readline("請按ENTER繼續...")
 
 ##主程式
 #ChangeProd()
 
 repeat
 {
-
+  
   Price <- Price.current()
   print(paste0("--------Fear Of Market Out--------"))
   print(paste0("DataTIME           : ", date.format)) 
@@ -59,44 +73,9 @@ repeat
   print(paste0("MXFSource          : ", switch.DATA.Source))  
   
   print(" ")
-
-  print("(QR)QueryRight")
-  print("(CP)ChangePRodid")
-  print("(QA)QueryAllOrder")
-  print("(QO)QueryOnOpen")
-  print("(QU)QueryUnfinished")
-  print("(OL)Place.OrderLMT")
-  print("(OM)Place.OrderMKT")
-  print("(PR)oduct bundle")
-  print("(P)rice bundle")
-  print("(Q)uantity bundle")
-  print("(BS)Buy|Sell bundle")
-  print("(SPT)StopPORT.TYPE")
-  print("(SLT)StopLOSS.TYPE")
-  print("(DT)_switch_DayTRADE")  
-  print("(PRB)Price.buyin")
-  print("(PCL)PCL")
- 
-  print("(EDPC)enable.default.P.CHECK") 
-  print("(ESSP)enable.stable.S.P.")
-  print("(EAS)ENABLE_AGENT.SERVERE") 
-  print("(DAGS)DISABLE_AGENT.SERVERE") 
-  print("(RAGS)RESET_AGENT.SERVERE") 
+  print("(SCK) ShortCUT KET MAP")
+  print("(CNT) CONNECTION TEST")
   
-  print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
-  print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
-
-  print("(SSPM)SWITCH StopPORT.MA")
-  print("(SSPR)SWITCH StopPORT.RSI")
-  
-  print("(SMS)SWITCH MFXSource")
-  # print("(CPBM)Close POSITION BY MA ")
-  print("(SPUT)S&P Unbreaked times")
-  print("(APC)switch_Auto.pos.CLOSE")
-  print("(SDP)switch_defaultPORT") 
-  print("(SDP)switch_defaultPORT")
-  print("(SS)switch_Simulation") 
-   
   if(next.step =="")
   {
     action <- readline("[COMMAND] :")
@@ -109,9 +88,8 @@ repeat
   {
       switch(action,
     
-            CL ={result <- ClosePositionAll()},
+            # CL ={result <- ClosePositionAll()},
             CP ={result <- ChangeProd()},
-            CA ={result <- CancelAll()},
             "5"  ={
                     result <- CancelAll()
                     print(paste("回傳結果(取消下單) :", result))
@@ -125,24 +103,43 @@ repeat
                   print(result)
                 },
             OL ={result <- Place.OrderLMT()},
+            SCK =shortcut.key(),
+            CNT ={
+              print(paste("[動作] 測試卷商連線品質..."))
+              
+              check.result <-c()
+              if(connect.test(x=6))
+              {
+                check.result <-(paste("[訊息] 聯線正常."))
+                
+              }else{
+                check.result <- (paste("[錯誤] 無法建立聯線."))
+              }
+              print(check.result)
+              
+              action <- readline("請按ENTER繼續...")
+            },
+            
             "0" ={
                     msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
                     file.create(msg.file)
-                    result <- ClosePositionAll()
+                    result <- ClosePositionAll(simu.mode = simu)
                     print(paste("回傳結果(全平倉) :", result))
                     
                   },
             "4"  ={
-                    #Qty <-1 
                     BorS <- "B"
                     Price <- Price.current()
-                    result <- Place.OrderLMT()
-     
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息 
-                    print(paste("交易結果 :", result, ">>", m.answer))
+                    result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
+                    beep(sound = 2)
                     
-                    if(check.ifDeal(decode.info = transaction))
+                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
+                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
+                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    
+                    print(paste("交易結果 :", m.answer))
+                    
+                    if(if.complete)
                     {
                       print(paste("[訊息] 執行成交後續設定"))
                       Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
@@ -165,16 +162,17 @@ repeat
        
                   },
             "2"  ={
-                    #Qty <-1 
                     BorS <- "B"
                     Price <- Price.current()
-                    result <- Place.OrderMKT()
+                    result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode = simu)
              
                     transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息 
-                    print(paste("交易結果 :", result, ">>", m.answer))
+                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
+                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
                     
-                    if(check.ifDeal(decode.info = transaction))
+                    print(paste("交易結果 :", m.answer))
+                    
+                    if(if.complete)
                     {
                       print(paste("[訊息] 執行成交後續設定"))
                       Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
@@ -196,16 +194,18 @@ repeat
                     }              
                   },
             "6"  ={
-                    #Qty <-1
                     BorS <- "S"
                     Price <- Price.current()
-                    result <- Place.OrderLMT()
-                 
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息 
-                    print(paste("交易結果 :", result, ">>", m.answer))
+                    result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
+                    beep(sound = 2)
                     
-                    if(check.ifDeal(decode.info = transaction))
+                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
+                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
+                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    
+                    print(paste("交易結果 :", m.answer))
+                    
+                    if(if.complete)
                     {
                       print(paste("[訊息] 執行成交後續設定"))
                       Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
@@ -227,16 +227,17 @@ repeat
                     }
                  },
             "8"  ={
-                    #Qty <-1
                     BorS <- "S"
                     Price <- Price.current()
-                    result <- Place.OrderMKT()
+                    result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode = simu)
                
                     transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息 
-                    print(paste("交易結果 :", result, ">>", m.answer))
+                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
+                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
                     
-                    if(check.ifDeal(decode.info = transaction))
+                    print(paste("交易結果 :", m.answer))
+                    
+                    if(if.complete)
                     {
                       print(paste("[訊息] 執行成交後續設定"))
                       Price.buyin <- as.numeric(account.info(info =transaction, by.name = "price" ))
@@ -323,6 +324,7 @@ repeat
                   if(simu){simu <-FALSE}
                   else{simu <-TRUE}
                  },
+            RSS ={file.create(RSS.path)},
             MSGL ={
                     msg.lite <- TF.Switch(msg.lite)
                     .path <-extra.data(name="msg.lite", p.mode = "path")
@@ -334,16 +336,6 @@ repeat
                     result <- readline("PLS. PRESS ANY KEY to continue...")
                   
             },
-            # STL ={
-            #         TRENDMark.LONG <- TF.Switch(TRENDMark.LONG)
-            #       },
-            # STS ={
-            #         TRENDMark.SHORT <- TF.Switch(TRENDMark.SHORT)
-            #       },
-            # SCD ={
-            #         switch.check.if.deal <-TF.Switch(switch.check.if.deal) 
-            #       },
-            #MXFSIMU.Server DMSS.path
             EMSS ={
                     SIMU.DATA.Server()
                   },
@@ -395,15 +387,23 @@ repeat
                     file.create(enable.STABLE.Stop.PORT.path)
                   },
             CCL ={
+                    while(TRUE)
+                    {
+                      .price <- as.numeric(readline("CUSTOM.CreateLONG.price :"))
+                      if(.price >0){break}
+                    }
                     .path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
-                    .price <- as.numeric(readline("CUSTOM.CreateLONG.price :"))
                     unlink(.path)
                     append.to.file(data=.price
                                    , path=.path)
                   },
             CCS ={
+                    while(TRUE)
+                    {
+                      .price <- as.numeric(readline("CUSTOM.CreateSHORT.price :"))
+                      if(.price >0){break}
+                    }
                     .path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
-                    .price <- as.numeric(readline("CUSTOM.CreateSHORT.price :"))
                     unlink(.path)
                     append.to.file(data=.price
                                    , path=.path)
@@ -444,13 +444,7 @@ repeat
                     append.to.file(data=.price
                                    , path=.path)
             },
-            "420" ={
-                    .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
-                    .price <- extra.data(name="MA20")
-                    unlink(.path)
-                    append.to.file(data=.price
-                                   , path=.path)
-            },
+   
             BMA20_ ={
                     .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
                     .price <- 20
@@ -493,13 +487,7 @@ repeat
                     append.to.file(data=.price
                                    , path=.path)
             },
-            "620" ={
-                    .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
-                    .price <- extra.data(name="MA20")
-                    unlink(.path)
-                    append.to.file(data=.price
-                                   , path=.path)
-            },
+       
             SMA20_ ={
                     .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
                     .price <- 20
@@ -536,22 +524,7 @@ repeat
 
                     
                   },
-            # CPBM ={
-            #   while(TRUE)
-            #   {
-            #     result <- as.numeric(readline("ClosePOSITION by MA(10/20):"))
-            #     if(result ==10 ||result ==20)
-            #     {
-            #       closePositionBY.MA <-result
-            #       .path <-extra.data(name="CLOSEPositionByMA", p.mode = "path")
-            #       append.to.file(data=switch.stopPORT
-            #                      , path=.path)
-            #       break
-            #     }else{print("Wrong Param.MA(10/20)")}                     
-            #   }
-            #   
-            #   
-            # },
+      
             SSPR ={
               while(TRUE)
               {
@@ -572,7 +545,6 @@ repeat
             
             result <- readline(paste0("Command is not correct. [", action, "]"))
             
-            # print(paste0("Command is not correct. [", action, "]"))
             
       )
     }

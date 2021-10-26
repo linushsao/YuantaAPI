@@ -1,37 +1,10 @@
-##
-#### 緊急平倉 ####
-ClosePositionAll<-function(){
-  #system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
-  if (!simu){
-    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
-    OrderNo<-system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
-    # print(paste("[下單觸發] 快速平倉"))
-    # 回傳委託序號
-    return(OrderNo)
-  }else{
-    # print(paste("[模擬下單觸發] 快速平倉"))
-    return("SIMU")
-    
-  }  
-}
+
+
 
 #### 最新報價 ####
 Price.current<-function(data.path=NULL)
 {
 
-  # if(!file.exists(data.path))
-  # {
-  #   return(0)
-  # }else{
-  #   x <-3
-  #   if(pr=="CL"){x=3}
-  #   if(pr=="HI"){x=6}
-  #   if(pr=="LO"){x=7}
-  #   
-  #   result <- QueryOHCL(data.path, 1)
-  #   result <- strsplit(result, ",") 
-  #   result <- result[[1]][x]   
-  # }
   if(is.null(data.path))
   {
     m.data.path <-SECURTIES.data.path
@@ -44,83 +17,40 @@ Price.current<-function(data.path=NULL)
 #### 權益數解讀 ####
 Right.current<-function(x=6)
 {
-  
   result <- QueryRight()
   return(result[[x]])
-  
-}
-
-#### 限價委託單 ####
-Place.OrderLMT<-function()
-{
-  
-  #Qty <-1  
-  order.cmd <- ""
-  
-  if (!simu){
-    # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
-    order.cmd <-paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade)
-    # OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=paste(Product,BorS,Price,Qty,'LMT',"ROD",Daytrade),stdout = TRUE)
-    OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
-    # 回傳委託序號
-    return(OrderNo)
-  }else{
-    return("SIMU")
-  }
-}
-
-#### 市價委託單 ####
-Place.OrderMKT<-function()
-{
-  
-  #Qty <-1  
-  order.cmd <- ""
-  
-  if (!simu){
-    # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
-    order.cmd <- paste(Product,BorS,'0',Qty,'MKT',"IOC", Daytrade)
-    OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
-    # 回傳委託序號
-    return(OrderNo)
-  }else{
-    return("SIMU")
-  }
 }
 
 #執行平倉方式
-if.safeClose <-function(bs=NULL)
+if.safeClose <-function(.BorS, .Price, .Qty, .Daytrade, simu.mode)
 {
-  if(!simu)
+  if(!simu.mode)
   {
-    if (!safe.Close)
-    {
-      #預設限價單
-      if(bs =="B" || bs =="S")
-      {
-        BorS <- bs
-        Price <- Price.current()
-        result <- Place.OrderLMT()      
-      }
-      
-      #市價單 
-      if(bs =="MB" || bs =="MS")
-      {
-        BorS <- gsub("M", "", bs)
-        Price <- Price.current()
-        result <- Place.OrderMKT()
-      }
-      
-    }else{
-      result <- ClosePositionAll()             
-    }  
+    # if (!safe.Close)
+    # {
+    #   #預設限價單
+    #     BorS <- .BorS
+    #     Price <- Price.current()
+    #     Qty <- .Qty
+    #     Daytrade <-.Daytrade 
+    #     result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu.mode)
+    # 
+    #   #市價單
+    #     BorS <- gsub("M", "", .BorS)
+    #     Price <- Price.current()
+    #     result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode=simu.mode)
+    # 
+    # }else{
+      result <- ClosePositionAll(simu.mode = simu.mode)
+    # }
   }else{
-    
+
     result <-"SIMU"
   }
-  
+
   return(result)
 }
-# 
+
 
 filename.gen <-function(x=NULL, name)
 {
@@ -153,11 +83,11 @@ TF.Switch <-function(logic.val)
   return(val)
 }
 
-append.to.file <- function(data, path)
+append.to.file <- function(data, path, m.append=TRUE, m.col.names=FALSE)
 {
   write.table(data, file=path, sep=","
               , row.names=F, na = "NA", 
-              append=TRUE,col.names=FALSE)
+              append=m.append, col.names=ifelse(m.append, FALSE, m.col.names))
 }
 
 push.pull <- function(x, p.mode)
@@ -192,20 +122,6 @@ p_n.sig <-function(x)
   
 }
 
-check.ifDeal <-function(decode.info)
-{
-  # ANSWER.NULL <- "Nodata"
-  # ANSWER.ALLDeal <-"全部成交"
-  # ANSWER.SOMEDeal <-"部分成交"
-  # ANSWER.ALLCancel <-"全部取消"
-  
-  m.answer <-account.info(by.name="status", info = decode.info) #取出交易結果訊息 
-  if(m.answer == ANSWER.ALLDeal || m.answer == ANSWER.SOMEDeal)
-  {
-    return(TRUE)
-  }
-    
-}
 
 #[1] "2021102500139494T0EO,全部成交,MXFK1,限賣,16900,1,114317,226,3414338,,7D930,,,,,1,0 "
 
@@ -213,41 +129,133 @@ account.info <- function(code=NULL, by.name=NULL, info)
 {
   if(!is.null(code))
   {
+      leng <-LENGTH.COLLECT.ANSWER
+      #錯誤檢查，尚未進行連接
+      ##要求參數有誤 "Delete KeyNo"
+      if(code[6] ==CONNECTED.ANSWER.BorS.WrongPARAM)
+      {
+        result <- c(rep(NULL, leng))
+        result[1] <-"CONNECTED.ANSWER.BorS.WrongPARAM"
+        result[2] <-CONNECTED.ANSWER.BorS.WrongPARAM
+        result[5] <-Price.current()
+        result[8] <-FALSE
+        
+        return(result)
+      }
+
       if(code !=CODE.SIMU)
       {
         .info <-  QueryOrder(code)
+        
+        #錯誤檢查
+        ##CONNECTED.ANSWER.RightPARAM.NoDATA "Nodata"
+        if(.info[1] ==CONNECTED.ANSWER.RightPARAM.NoDATA)
+        {
+          result <- c(rep(NULL, leng))
+          result[1] <-"CONNECTED.ANSWER.RightPARAM.NoDATA"
+          result[2] <-CONNECTED.ANSWER.RightPARAM.NoDATA
+          result[5] <-Price.current()
+          result[8] <-FALSE
+          
+          return(result)
+        }
+        ##UNCONNECTED.ANSWER.RightPARAM "請開啟Smart API"
+        if(.info[1] ==UNCONNECTED.ANSWER.RightPARAM)
+        {
+          result <- c(rep(NULL, leng))
+          result[1] <-"UNCONNECTED.ANSWER.RightPARAM"
+          result[2] <-UNCONNECTED.ANSWER.RightPARAM
+          result[5] <-Price.current()
+          result[8] <-FALSE
+          
+          return(result)
+        } 
+        ##COMMON.ANSWER.EmptyPARAM "KeyNo or ALL"
+        if(.info[1] ==COMMON.ANSWER.EmptyPARAM)
+        {
+          result <- c(rep(NULL, leng))
+          result[1] <-"COMMON.ANSWER.EmptyPARAM"
+          result[2] <-COMMON.ANSWER.EmptyPARAM
+          result[5] <-Price.current()
+          result[8] <-FALSE
+          
+          return(result)
+        } 
+        
+        #下單連接成功
         result <- strsplit(.info, ",")[[1]]
+        result[8] <-TRUE
+        
+        return(result)
+        
       }else{ #模擬交易回應
-        result <- c(rep(NULL, 7))
+        result <- c(rep(NULL, leng))
         result[1] <-code
         result[2] <-ANSWER.ALLDeal
         result[5] <-Price.current()
+        result[8] <-FALSE
         
-        result <-c(result, simu)
+        return(result)
       }
-  #取出DECODED INFO之特定資料
-  }else if(!is.null(by.name)){
-    
-    switch (by.name,
-      order   = {x=1},
-      status  = {x=2},
-      product = {x=3},
-      bors    = {x=4},
-      price   = {x=5},
-      amount  = {x=6},
-      time    = {x=7},
-      x=0
-      )
-    result <-ifelse(x!=0, info[x], "ERROR.")
   }
-   
+  
+  #取出DECODED INFO之特定資料
+  if(!is.null(by.name))
+  {
+  
+  switch (by.name,
+    order   = {x=1},
+    status  = {x=2},
+    product = {x=3},
+    bors    = {x=4},
+    price   = {x=5},
+    amount  = {x=6},
+    time    = {x=7},
+    complete = {x=8}, #TRUE表示下單成功
+    x=0
+    )
+  result <-ifelse(x!=0, info[x], FALSE)
+  
   return(result)  
+    
+  }
 
+}
+
+#卷商主機連線測試
+connect.test <-function(x=NULL)
+{
+  #設定最多檢查次數
+  if(is.null(x)){x <-6}
+  if.connected <-FALSE
+  #測試連線結果
+  for(miu in 1:x)
+  {
+    result <- !is.na(QueryRight()[[1]]) #TRUE表示正常
+    if(result)
+    {
+      if.connected <-TRUE
+      break
+    }
+  }
+  return(if.connected)
+}
+#
+trans.lang <-function(mode, param)
+{
+  switch (mode,
+    SIMU ={
+      if(param)
+      {
+        return("模擬")
+        }else{return("真實")}
+    }
+  )
 }
 # 
 m.tail <-function(path)
 {
-  price.file <- read.csv(path, header = FALSE)
+  price.file <- read.csv(path, header = FALSE, fileEncoding = "big5")
   price.tail <- tail(price.file, 1)
   return(price.tail)
 }
@@ -341,8 +349,10 @@ path.MGR <-function(x)
     DISABLE_MXFSIMU.SERVERE.path  = result<- paste0(price.path, "DMSS", ".csv"),
     DISABLE_AGENT.SERVERE.path  = result<- paste0(price.path, "DAGS", ".csv"),
     RESET_AGENT.SERVERE.path  = result<- paste0(price.path, "RESET_AGENT.SERVERE", ".csv"),
-    close.ALL.path  = result<- paste0(price.path, "close.ALLPOSITION", ".csv")
-
+    close.ALL.path  = result<- paste0(price.path, "close.ALLPOSITION", ".csv"),
+    REMOTE_SWITCH_SIMULATION.path  = result<- paste0(price.path, "REMOTE_SWITCH_SIMULATION", ".csv")
+    
+    
   )
   
     return(result)
@@ -1030,7 +1040,10 @@ extra.data <-function(name="CL", p.mode="num")
              m.path <-path.MGR("RESET_AGENT.SERVERE.path")
              if(p.mode =="path"){return(m.path)}
            },  
-           
+           REMOTE_SWITCH_SIMULATION ={
+             m.path <-path.MGR("REMOTE_SWITCH_SIMULATION.path")
+             if(p.mode =="path"){return(m.path)}
+           },             
            close.ALLPOSITION =
              {
                m.path <-path.MGR("close.ALL.path")
@@ -1039,7 +1052,7 @@ extra.data <-function(name="CL", p.mode="num")
     )    
   }
 
- 
+
   
   
 

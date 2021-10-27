@@ -104,7 +104,7 @@ Position.stop<-function()
         )
      )
      {
-       result <- ClosePositionAll(simu.mode = simu)
+       result <- ClosePositionAll()
        beep(sound = 7)
        print(paste("[動作] 執行多頭停損價位 :", Price.curr, "<", Price.in))
        break #回到主MENU
@@ -315,11 +315,11 @@ Position.stop<-function()
         
         #壓力支撐區形成平倉
           if( (PCL ==for.LONG && 
-               Price.diff >=default.enable_stopPORTFOLIO &&
+               Price.diff >=default.enable_stopHIGH.PORTFOLIO &&
                Price.reachLIMITED.times.Long >Price.reachLIMITED.times.Limited) #多倉
               ||
               (PCL ==for.SHORT && 
-               Price.diff <=default.enable_stopPORTFOLIO *-1 &&
+               Price.diff <=default.enable_stopHIGH.PORTFOLIO *-1 &&
                Price.reachLIMITED.times.Short >Price.reachLIMITED.times.Limited) ) #空倉
           {
               if(PCL ==for.LONG)

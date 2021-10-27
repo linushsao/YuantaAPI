@@ -1,16 +1,44 @@
+#
+BorS2PCL <- function(x)
+{
+  switch (x,
+    B = return(1),
+    b = return(1),
+    S = return(-1),
+    s = return(-1),
+    return(0)
+  )
+}
 
+info2PCL <- function(x)
+{
+  .buy <-num2TF(length(grep("買", x)))
+  .sell<-num2TF(length(grep("賣", x)))
+  
+  .res <-0
+  
+  if(.buy) {.res <- 1}
+  if(.sell){.res <--1}
+  
+  return(.res)
+}
 
 
 #### 最新報價 ####
 Price.current<-function(data.path=NULL)
 {
-
+  #檢查路徑
   if(is.null(data.path))
   {
     m.data.path <-SECURTIES.data.path
   }else{m.data.path <-data.path}
   
-  result <- QueryOHCL(data.path = m.data.path)
+  if(file.exists(m.data.path))
+  {
+    result <- QueryOHCL(data.path = m.data.path)
+  }else{result <-0}
+  
+  return(result)
 
 }
 
@@ -22,9 +50,9 @@ Right.current<-function(x=6)
 }
 
 #執行平倉方式
-if.safeClose <-function(.BorS, .Price, .Qty, .Daytrade, simu.mode)
+if.safeClose <-function(.BorS, .Price, .Qty, .Daytrade, .simu)
 {
-  if(!simu.mode)
+  if(!.simu)
   {
     # if (!safe.Close)
     # {
@@ -41,7 +69,7 @@ if.safeClose <-function(.BorS, .Price, .Qty, .Daytrade, simu.mode)
     #     result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode=simu.mode)
     # 
     # }else{
-      result <- ClosePositionAll(simu.mode = simu.mode)
+      result <- ClosePositionAll()
     # }
   }else{
 
@@ -78,6 +106,14 @@ data.source.switch <-function(x)
 TF.Switch <-function(logic.val)
 {
   if(logic.val){val <-FALSE}
+  else{val <-TRUE}
+  
+  return(val)
+}
+
+num2TF <-function(num)
+{
+  if(num ==0){val <-FALSE}
   else{val <-TRUE}
   
   return(val)
@@ -122,25 +158,131 @@ p_n.sig <-function(x)
   
 }
 
+# QueryRight<-function(){
+#   rightinfo<-system2(paste0(ExecPath,'FutureRights.exe'),stdout = TRUE)
+#   nn = as.numeric(strsplit(rightinfo,split=',')[[1]][c(7,1,3,2,20,17)])
+#   return = list("今日權益總值"=nn[1],"權益數"=nn[2],"可動用保證金"=nn[3],
+#                 "原始保證金"=nn[4],"維持保證金"=nn[5],"未沖銷期貨浮動損益"=nn[6])
+#   return(return)
+# }
+
+portfolio.monitor <-function()
+{
+  #檢查是否有未平倉 TRUE表無 FALSE表有
+  .check.NO.OnOpen <-!length(QueryOnOpen())
+  
+  if(!.check.NO.OnOpen)
+  {
+    #尚有未平倉部位
+    #取出<未沖銷期貨浮動損益>數字
+    .portfolio <-as.numeric(QueryRight()[[6]][1])
+    return(.portfolio)
+  }else{
+    return(-1)
+  }
+}
+
+#執行交易並回傳交易序號
+PTrading.MGR <-function(.BorS, .Price, .Qty, .Daytrade, .simu)
+{
+  
+  BorS <- .BorS
+  Price <- .Price
+  Qty <- .Qty
+  Daytrade <- .Daytrade
+  
+  transaction <- c()
+  
+  if(!.simu)
+  {
+    OrderNO <- Place.OrderLMT(BorS, Price, Qty, Daytrade)
+    
+  }else{
+    OrderNO <- CODE.SIMU
+  }
+  
+  return(OrderNO)
+  
+}
+
+
+#依下單回傳序號解碼成文字向量，並確認交易結果
+PTrading.confirm <-function(.OrderNO, .times=NULL)
+{
+  
+  .checkTIMES  <-0
+  .checkRESULT <-FALSE
+  
+  if(!is.null(.times))
+  {
+    .t.checkTIMES <-.times
+  }else{.t.checkTIMES <-transaction.checkTIMES}
+  
+  #檢查交易是否成交
+  while(TRUE)
+  {
+    Sys.sleep(1)
+    
+    .checkTIMES <- .checkTIMES+1
+    if(.checkTIMES <=.t.checkTIMES)
+    {
+      transaction  <-account.info(code=.OrderNO) #依下單回傳訊息解碼成文字向量
+      .checkRESULT <-account.info(by.name ="complete", info =transaction) #取出結果
+      if(.checkRESULT){break} #交易成功
+    }else{break}
+    
+  }
+  
+  return(list(.checkRESULT, transaction))
+  
+}
+
+#交易成功後執行後續設定
+PTConf.export <-function(transaction)
+{
+  
+  # transaction <-account.info(code=.OrderNO) #依下單回傳訊息解碼成文字向量
+  
+  Price.buyin <- as.numeric(account.info(by.name ="price", info = transaction ))
+  PCL <- info2PCL( x =account.info(by.name ="bors", info = transaction) )
+  
+  .path <- extra.data(name="price.Buyin", p.mode = "path")
+  .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+  order.name <- ifelse(.PCL ==1, "create.positionLONG", "create.positionSHORT")
+  .msg.path <- extra.data(name=order.name, p.mode = "path")
+  unlink(.path)
+  append.to.file(data=Price.buyin
+                 , path=.path)
+  append.to.file(data=PCL
+                 , path=.PCL.path)
+  result <-file.create(.msg.path)
+  
+  return(result)
+}
+
 
 #[1] "2021102500139494T0EO,全部成交,MXFK1,限賣,16900,1,114317,226,3414338,,7D930,,,,,1,0 "
 
 account.info <- function(code=NULL, by.name=NULL, info)
 {
-  if(!is.null(code))
+  leng <-LENGTH.COLLECT.ANSWER
+  
+  if(!is.null(code) & !is.na(code))
   {
-      leng <-LENGTH.COLLECT.ANSWER
       #錯誤檢查，尚未進行連接
       ##要求參數有誤 "Delete KeyNo"
-      if(code[6] ==CONNECTED.ANSWER.BorS.WrongPARAM)
+      if(length(code) >1)
       {
-        result <- c(rep(NULL, leng))
-        result[1] <-"CONNECTED.ANSWER.BorS.WrongPARAM"
-        result[2] <-CONNECTED.ANSWER.BorS.WrongPARAM
-        result[5] <-Price.current()
-        result[8] <-FALSE
-        
-        return(result)
+        if(code[6] ==CONNECTED.ANSWER.BorS.WrongPARAM)
+        {
+          result <- c(rep(NULL, leng))
+          result[1] <-"CONNECTED.ANSWER.BorS.WrongPARAM"
+          result[2] <-CONNECTED.ANSWER.BorS.WrongPARAM
+          result[5] <-Price.current()
+          result[8] <-FALSE
+          
+          return(result)
+        }        
       }
 
       if(code !=CODE.SIMU)
@@ -350,7 +492,8 @@ path.MGR <-function(x)
     DISABLE_AGENT.SERVERE.path  = result<- paste0(price.path, "DAGS", ".csv"),
     RESET_AGENT.SERVERE.path  = result<- paste0(price.path, "RESET_AGENT.SERVERE", ".csv"),
     close.ALL.path  = result<- paste0(price.path, "close.ALLPOSITION", ".csv"),
-    REMOTE_SWITCH_SIMULATION.path  = result<- paste0(price.path, "REMOTE_SWITCH_SIMULATION", ".csv")
+    REMOTE_SWITCH_SIMULATION.path  = result<- paste0(price.path, "REMOTE_SWITCH_SIMULATION", ".csv"),
+    REMOTE_SWITCH_PORTFOLIO.MONITOR.path  = result<- paste0(price.path, "REMOTE_SWITCH_PORTFOLIO.MONITOR", ".csv")
     
     
   )
@@ -1043,7 +1186,11 @@ extra.data <-function(name="CL", p.mode="num")
            REMOTE_SWITCH_SIMULATION ={
              m.path <-path.MGR("REMOTE_SWITCH_SIMULATION.path")
              if(p.mode =="path"){return(m.path)}
-           },             
+           },      
+           REMOTE_SWITCH_PORTFOLIO.MONITOR ={
+             m.path <-path.MGR("REMOTE_SWITCH_PORTFOLIO.MONITOR.path")
+             if(p.mode =="path"){return(m.path)}
+           }, 
            close.ALLPOSITION =
              {
                m.path <-path.MGR("close.ALL.path")
@@ -1051,10 +1198,4 @@ extra.data <-function(name="CL", p.mode="num")
              }
     )    
   }
-
-
-  
-  
-
-
 

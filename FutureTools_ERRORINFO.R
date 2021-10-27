@@ -32,3 +32,13 @@
 # > QueryOrder("AA")
 # [1] "Nodata"
 
+# [1] "[動作] 切換模擬/真實設定"
+# [1] "[  0 ] 0 0 >> 16992  + 17056.99 16928 - + 16942.71 17052.99 -  真實 813"
+# Error in if (extremes_Line_Upper < Bolling_Line_upper) { :
+#     需要 TRUE/FALSE 值的地方有缺值
+#   Warning messages:
+#     1: package 'roxygen2' was built under R version 4.0.5
+#   2: package 'beepr' was built under R version 4.0.5
+#   3: In scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  :
+#                輸入連結 'C:/Temp/msg/_b_upper.csv' 中的輸入不正確
+#              4: In Position.AGENT() : 強制變更過程中產生了 NA

@@ -6,6 +6,7 @@ BorS <- "" #買(B)或賣(S)
 Qty <-1
 Daytrade <-"1" #設定當沖(否1是0)
 #
+transaction.checkTIMES <-5 #檢查交易結果次數
 simu <-TRUE
 CODE.SIMU <- "SIMU"
 
@@ -40,9 +41,11 @@ append.to.file(data=switch.stopPORT
 DateFolder <- ""
 result <- "  "
 gear <-0
-BASE_portfolio <- 7  #無虧損停利價差
+BASE_portfolio <- 10  #無虧損停利價差
 Stop_portfolio <- 15 #動態停利價差
 default.enable_stopPORTFOLIO <- 15 #固定停利價差
+default.enable_stopHIGH.PORTFOLIO <- 25 #固定停利價差
+
 Max.DDM <- 0
 default.PORTFOLIO.buffer <-5
 Keep.NOLOSS.ratio <-2
@@ -85,6 +88,7 @@ DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #停止虛擬資料伺服器
 DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #停止代理人伺服器
 RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #重設代理人伺服器
 RSS.path   <- extra.data(name="REMOTE_SWITCH_SIMULATION", p.mode = "path") #遙控切換模擬/真實
+EPM.path   <- extra.data(name="REMOTE_SWITCH_PORTFOLIO.MONITOR", p.mode = "path") #遙控切換<未沖銷期貨浮動損益>訊息視窗
 
 shortcut.key <-function()
 {
@@ -104,18 +108,28 @@ shortcut.key <-function()
   print("(DT)_switch_DayTRADE")  
   print("(PRB)Price.buyin")
   print("(PCL)PCL")
+  print("")
   
   print("(EDPC)enable.default.P.CHECK") 
   print("(ESSP)enable.stable.S.P.")
+  print("")
+  
   print("(EAS)ENABLE_AGENT.SERVERE") 
   print("(DAGS)DISABLE_AGENT.SERVERE") 
   print("(RAGS)RESET_AGENT.SERVERE") 
+  print("(RSS)REMOTE.SWITCH.SIMU_AGENT.SERVERE") 
+  print("")
+
+  print("(EPM)ENABLE_PORTFOLIO.MINITOR") 
+  print("")
   
   print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
   print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
+  print("")
   
   print("(SSPM)SWITCH StopPORT.MA")
   print("(SSPR)SWITCH StopPORT.RSI")
+  print("")
   
   print("(SMS)SWITCH MFXSource")
   print("(SPUT)S&P Unbreaked times")
@@ -123,7 +137,10 @@ shortcut.key <-function()
   print("(SDP)switch_defaultPORT") 
   print("(SDP)switch_defaultPORT")
   print("(SS)switch_Simulation") 
-  print("(RSS)REMOTE switch_Simulation") 
+  print("(RSS)REMOTE switch_Simulation")
+  print("(EPPT)EXPORT PTConf")
+  print("")
+  
   
   
   action <- readline("PRESS ANY KEY PLS... :")

@@ -342,7 +342,7 @@ Position.AGENT<-function()
     if(switch.stopPORT_RSI ==0){stop.PORT.RSIPrice =0} #不考慮RSI
     if(switch.stopPORT_RSI >0) {stop.PORT.RSIPrice =switch.stopPORT_RSI}
 
-    ##待命中
+    ##待命建倉
     if(create.price !=0)
     {
       ##檢查create.price是否標記為動態均線服從
@@ -381,8 +381,6 @@ Position.AGENT<-function()
     
       }
       
-      #AGENT FUNCTION
-      ##
       #檢查建倉條件
       if(create.price >0 && 
          !switch.create.positionLONG && #標示已手動完成建倉
@@ -402,105 +400,74 @@ Position.AGENT<-function()
           
           BorS <- "B"
           Price <- Price.current()
-          result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
-          beep(sound = 2)
+          #執行交易並回傳交易序號
+          OrderNO <-PTrading.MGR(.BorS=BorS
+                                 , .Price=Price
+                                 , .Qty=Qty
+                                 , .Daytrade=Daytrade
+                                 , .simu=simu)
           
-          transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-          if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-          m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
- 
-          print(paste("交易結果 :", m.answer))
+          #依下單回傳序號解碼成文字向量，並確認交易結果
+          list.RESULT <-PTrading.confirm(OrderNO)
+          .checkRESULT <-list.RESULT[[1]]
+          transaction  <-list.RESULT[[2]]
           
-          if(if.complete)
-          {
-            
-            print(paste("[訊息] 執行成交後續設定"))
-            Price.buyin <- as.numeric(account.info(info =transaction, by.name = "price" ))
-            
-            PCL <- 1
-            .path <- extra.data(name="price.Buyin", p.mode = "path")
-            .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-            .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-            unlink(.path)
-            append.to.file(data=Price.buyin
-                           , path=.path)
-            append.to.file(data=PCL
-                           , path=.PCL.path)
-            file.create(.msg.path)
-            if(Auto.positionCLOSE)
-            {
-              next.step <- "7"
-            }
-            Finished.create.positionLONG <-TRUE
-          }
-        }###
-      }
-      
-      if(create.price <0 && 
-         !switch.create.positionSHORT &&
-         !Finished.create.positionSHORT)
-      {
-        if(Price.curr >=abs(create.price)-MatchBUFFER && !ENABLE.ByMA)
-        {
-          ENABLE.ByMA <-TRUE
-          beep(sound = 2)
-          print(paste("[設定] 待命空頭均線服從建倉，價位 :", Price.curr))
+          #交易成功則執行後續設定
+          if(.checkRESULT){PTConf.export(transaction)}
           
+          #匯出交易紀錄
+          append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+          m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                  , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
+          
+          Finished.create.positionLONG <-TRUE
         }
-        else if(Price.curr <abs(create.price)-MatchBUFFER && 
-                            ENABLE.ByMA &&
-                            !Finished.create.positionSHORT)
-        {
-          #建倉
-          BorS <- "S"
-          Price <- Price.current()
-          result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
-          beep(sound = 2)
-          
-          transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-          if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-          m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
-          
-          print(paste("交易結果 :", m.answer))
-          
-          if(if.complete)
-          {
-            print(paste("[訊息] 執行成交後續設定"))
-            Price.buyin <- as.numeric(account.info(info =transaction, by.name = "price" ))
-            
-            PCL <- -1
-            .path <- extra.data(name="price.Buyin", p.mode = "path")
-            .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-            .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-            unlink(.path)
-            append.to.file(data=Price.buyin
-                           , path=.path)
-            append.to.file(data=PCL
-                           , path=.PCL.path)
-            file.create(.msg.path)
-            if(Auto.positionCLOSE)
-            {
-              next.step <- "7"
-            }  
-            
-            Finished.create.positionSHORT <-TRUE
-          }
+        }###
+      
+    if(create.price <0 && 
+       !switch.create.positionSHORT &&
+       !Finished.create.positionSHORT)
+    {
+      if(Price.curr >=abs(create.price)-MatchBUFFER && !ENABLE.ByMA)
+      {
+        ENABLE.ByMA <-TRUE
+        beep(sound = 2)
+        print(paste("[設定] 待命空頭均線服從建倉，價位 :", Price.curr))
+        
       }
+      else if(Price.curr <abs(create.price)-MatchBUFFER && 
+                          ENABLE.ByMA &&
+                          !Finished.create.positionSHORT)
+      {
+        #建倉
+        BorS <- "S"
+        Price <- Price.current()
+        #執行交易並回傳交易序號
+        OrderNO <-PTrading.MGR(.BorS=BorS
+                               , .Price=Price
+                               , .Qty=Qty
+                               , .Daytrade=Daytrade
+                               , .simu=simu)
+        
+        #依下單回傳序號解碼成文字向量，並確認交易結果
+        list.RESULT <-PTrading.confirm(OrderNO)
+        .checkRESULT <-list.RESULT[[1]]
+        transaction  <-list.RESULT[[2]]
+        
+        #交易成功則執行後續設定
+        if(.checkRESULT){PTConf.export(transaction)}
+        
+        #匯出交易紀錄
+        append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+        m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
+          
+        Finished.create.positionSHORT <-TRUE
+        }
     }
+  }
     
     ##已建倉，檢查平倉條件
-    ###強制出場均線設定
-    # if(closePositionBY.MA ==0)  {closePositionBY.MAPrice =0} #不考慮均線
-    # if(closePositionBY.MA ==10) {closePositionBY.MAPrice =price.ma10}
-    # if(closePositionBY.MA ==20) {closePositionBY.MAPrice =price.ma20}
-    # ###出場均線設定
-    # if(switch.stopPORT ==0) {stop.PORT.MAPrice =0} #不考慮均線
-    # if(switch.stopPORT ==5) {stop.PORT.MAPrice =price.ma5}
-    # if(switch.stopPORT ==10){stop.PORT.MAPrice =price.ma10}
-    # ###出場RSI設定
-    # if(switch.stopPORT_RSI ==0){stop.PORT.RSIPrice =0} #不考慮RSI
-    # if(switch.stopPORT_RSI >0) {stop.PORT.RSIPrice =switch.stopPORT_RSI}
-      
     if(switch.create.positionLONG && 
        Price.PCL ==for.LONG )
     {
@@ -509,7 +476,7 @@ Position.AGENT<-function()
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
-        result <- ClosePositionAll(simu.mode = simu)
+        OrderNO <- ClosePositionAll()
         
         print(paste("[動作] 執行多頭停損價位 :", Price.buyin.PRE, ">", Price.curr
                     , switch.create.positionLONG
@@ -551,7 +518,7 @@ Position.AGENT<-function()
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
-        result <- ClosePositionAll(simu.mode = simu)
+        OrderNO <- ClosePositionAll()
         
         print(paste("[動作] 執行多頭停利價位 :", Price.buyin.PRE, ">", Price.curr
                     , switch.create.positionLONG
@@ -579,7 +546,7 @@ Position.AGENT<-function()
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
-        result <- ClosePositionAll(simu.mode = simu)
+        OrderNO <- ClosePositionAll()
         
         print(paste("[動作] 執行空頭停損價位 :", Price.curr, "<", Price.buyin.PRE
                     , switch.create.positionSHORT
@@ -619,7 +586,7 @@ Position.AGENT<-function()
       {
         msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
         file.create(msg.file)
-        result <- ClosePositionAll(simu.mode = simu)
+        OrderNO <- ClosePositionAll()
         
         print(paste("[動作] 執行空頭停利價位 :", Price.curr, "<", Price.buyin.PRE
                     , switch.create.positionSHORT
@@ -638,10 +605,6 @@ Position.AGENT<-function()
         }
       }
 
-    }
-    
-    # if(Price.curr.PRE ==0){Price.curr.PRE <-Price.curr}
-    
     #訊息顯示方式切換
     extra.msg1 <- c()
     extra.msg2 <- c()
@@ -658,7 +621,8 @@ Position.AGENT<-function()
         extra.msg2 <- paste(
           "<", round(Research_Line_Upper, digits = 2), round(Research_Line_lower, digits = 2)
           , round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
-          , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2), ">"
+          , round(Bolling_Line_upper, digits = 2), round(Bolling_Line_lower, digits = 2) 
+          , switch.stopPORT, stop.PORT.MAPrice, switch.stopPORT_RSI, stop.PORT.RSIPrice, ">"
         ) 
     }
     
@@ -668,8 +632,6 @@ Position.AGENT<-function()
                 , "+", round(.stopPORT.price.LONG, digits = 2), round(.stopPORT.price.SHORT, digits = 2), "-"
                 , "+", round(.stopLOSS.price.LONG, digits = 2), round(.stopLOSS.price.SHORT, digits = 2), "-"
                 , extra.msg2
-                , switch.stopPORT, stop.PORT.MAPrice
-                , switch.stopPORT_RSI, stop.PORT.RSIPrice
                 , trans.lang(mode=CODE.SIMU, param=simu), currentbar.num)
                 ) 
     

@@ -131,48 +131,46 @@ QueryOHCL<-function(data.path){
 }
 
 #### 緊急平倉 ####
-ClosePositionAll<-function(simu.mode=TRUE){
-  if (!simu.mode){
+ClosePositionAll<-function()
+{
+  # if (!simu.mode){
     # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
     OrderNo<-system2(paste0(ExecPath,'MayDay.exe'),stdout = TRUE)
     # 回傳委託序號
     return(OrderNo)
-  }else{
-    return("SIMU")
-    
-  }  
+
 }
 
 #### 限價委託單 ####
-Place.OrderLMT<-function(.BorS, .Price, .Qty, .Daytrade, simu.mode=TRUE)
+Place.OrderLMT<-function(.BorS, .Price, .Qty, .Daytrade)
 {
   
   order.cmd <- ""
   
-  if (!simu.mode){
+  # if (!simu.mode){
     # 下單後回傳委託書號 Order.exe TXFA8 B 10800 3 LMT ROD 1
     order.cmd <-paste(Product, .BorS, .Price, .Qty, 'LMT', "ROD", .Daytrade)
     OrderNo<-system2(paste0(ExecPath,'Order.exe'),args=order.cmd,stdout = TRUE)
     # 回傳委託序號
     return(OrderNo)
-  }else{
-    return("SIMU")
-  }
+  # }else{
+  #   return("SIMU")
+  # }
 }
 
 #### 市價委託單 ####
-Place.OrderMKT<-function(.BorS, .Qty, .Daytrade, simu.mode=TRUE)
+Place.OrderMKT<-function(.BorS, .Qty, .Daytrade)
 {
   
   order.cmd <- ""
   
-  if (!simu.mode){
+  # if (!simu.mode){
     # 下單後回傳委託書號 Order.exe TXFA8 B 0 3 MKT IOC 1
     order.cmd <- paste(Product, .BorS, '0', .Qty, 'MKT', "IOC", .Daytrade)
     OrderNo <- system2(paste0(ExecPath,'Order.exe'), args=order.cmd, stdout = TRUE)
     # 回傳委託序號
     return(OrderNo)
-  }else{
-    return("SIMU")
-  }
+  # }else{
+  #   return("SIMU")
+  # }
 }

@@ -70,7 +70,7 @@ repeat
   
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
   print(paste0("Simulation         : ", simu))  
-  print(paste0("MXFSource          : ", switch.DATA.Source))  
+  print(paste0("REAL.XFSource      : ", switch.DATA.Source))  
   
   print(" ")
   print("(SCK) ShortCUT KET MAP")
@@ -123,140 +123,126 @@ repeat
             "0" ={
                     msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
                     file.create(msg.file)
-                    result <- ClosePositionAll(simu.mode = simu)
+                    result <- ClosePositionAll()
+                    print(paste("交易序號回傳 :", result))
+                    
                     print(paste("回傳結果(全平倉) :", result))
                     
                   },
             "4"  ={
                     BorS <- "B"
                     Price <- Price.current()
-                    result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
-                    beep(sound = 2)
+                    #執行交易並回傳交易序號
+                    OrderNO <-PTrading.MGR(.BorS=BorS
+                                            , .Price=Price
+                                            , .Qty=Qty
+                                            , .Daytrade=Daytrade
+                                            , .simu=simu)
                     
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    #依下單回傳序號解碼成文字向量，並確認交易結果
+                    list.RESULT <-PTrading.confirm(OrderNO)
+                    .checkRESULT <-list.RESULT[[1]]
+                    transaction  <-list.RESULT[[2]]
                     
-                    print(paste("交易結果 :", m.answer))
+                    #交易成功則執行後續設定
+                    if(.checkRESULT){PTConf.export(transaction)}
+
+                    #匯出交易紀錄
+                    append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+                    m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                            , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
                     
-                    if(if.complete)
+                    # 
+                    if(Auto.positionCLOSE)
                     {
-                      print(paste("[訊息] 執行成交後續設定"))
-                      Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
-                      
-                      PCL <- 1
-                      .path <- extra.data(name="price.Buyin", p.mode = "path")
-                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-                      unlink(.path)
-                      append.to.file(data=Price.buyin
-                                     , path=.path)
-                      append.to.file(data=PCL
-                                     , path=.PCL.path)
-                      file.create(.msg.path)
-                      if(Auto.positionCLOSE)
-                      {
-                        next.step <- "7"
-                      }                     
-                    }
+                      next.step <- "7"
+                    }  
        
                   },
             "2"  ={
                     BorS <- "B"
                     Price <- Price.current()
-                    result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode = simu)
-             
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    #執行交易並回傳交易序號
+                    OrderNO <-PTrading.MGR(.BorS=BorS
+                                           , .Price=Price
+                                           , .Qty=Qty
+                                           , .Daytrade=Daytrade
+                                           , .simu=simu)
                     
-                    print(paste("交易結果 :", m.answer))
+                    #依下單回傳序號解碼成文字向量，並確認交易結果
+                    list.RESULT <-PTrading.confirm(OrderNO)
+                    .checkRESULT <-list.RESULT[[1]]
+                    transaction  <-list.RESULT[[2]]
                     
-                    if(if.complete)
+                    #交易成功則執行後續設定
+                    if(.checkRESULT){PTConf.export(transaction)}
+                    
+                    #匯出交易紀錄
+                    append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+                    m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                            , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
+                    
+                    # 
+                    if(Auto.positionCLOSE)
                     {
-                      print(paste("[訊息] 執行成交後續設定"))
-                      Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
-                      
-                      PCL <- 1
-                      .path <- extra.data(name="price.Buyin", p.mode = "path")
-                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-                      unlink(.path)
-                      append.to.file(data=Price.buyin
-                                     , path=.path)
-                      append.to.file(data=PCL
-                                     , path=.PCL.path)
-                      file.create(.msg.path)
-                      if(Auto.positionCLOSE)
-                      {
-                        next.step <- "7"
-                      }                     
-                    }              
+                      next.step <- "7"
+                    }                      
                   },
             "6"  ={
                     BorS <- "S"
                     Price <- Price.current()
-                    result <- Place.OrderLMT(BorS, Price, Qty, Daytrade, simu.mode = simu)
-                    beep(sound = 2)
+                    #執行交易並回傳交易序號
+                    OrderNO <-PTrading.MGR(.BorS=BorS
+                                           , .Price=Price
+                                           , .Qty=Qty
+                                           , .Daytrade=Daytrade
+                                           , .simu=simu)
                     
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    #依下單回傳序號解碼成文字向量，並確認交易結果
+                    list.RESULT <-PTrading.confirm(OrderNO)
+                    .checkRESULT <-list.RESULT[[1]]
+                    transaction  <-list.RESULT[[2]]
                     
-                    print(paste("交易結果 :", m.answer))
+                    #交易成功則執行後續設定
+                    if(.checkRESULT){PTConf.export(transaction)}
                     
-                    if(if.complete)
+                    #匯出交易紀錄
+                    append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+                    m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                            , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
+                    
+                    if(Auto.positionCLOSE)
                     {
-                      print(paste("[訊息] 執行成交後續設定"))
-                      Price.buyin <- as.numeric(account.info(by.name = "price", info =transaction))
-                      
-                      PCL <- -1
-                      .path <- extra.data(name="price.Buyin", p.mode = "path")
-                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-                      unlink(.path)
-                      append.to.file(data=Price.buyin
-                                     , path=.path)
-                      append.to.file(data=PCL
-                                     , path=.PCL.path)
-                      file.create(.msg.path)
-                      if(Auto.positionCLOSE)
-                      {
-                        next.step <- "7"
-                      }                     
-                    }
+                      next.step <- "7"
+                    }                     
                  },
             "8"  ={
                     BorS <- "S"
                     Price <- Price.current()
-                    result <- Place.OrderMKT(BorS, Qty, Daytrade, simu.mode = simu)
-               
-                    transaction <-account.info(code=result) #依下單回傳訊息解碼成文字向量
-                    if.complete <-account.info(by.name="complete", info = transaction) #取出交易結果(T/F)
-                    m.answer <-account.info(by.name="status", info = transaction) #取出交易結果訊息
+                    #執行交易並回傳交易序號
+                    OrderNO <-PTrading.MGR(.BorS=BorS
+                                           , .Price=Price
+                                           , .Qty=Qty
+                                           , .Daytrade=Daytrade
+                                           , .simu=simu)
                     
-                    print(paste("交易結果 :", m.answer))
+                    #依下單回傳序號解碼成文字向量，並確認交易結果
+                    list.RESULT <-PTrading.confirm(OrderNO)
+                    .checkRESULT <-list.RESULT[[1]]
+                    transaction  <-list.RESULT[[2]]
                     
-                    if(if.complete)
+                    #交易成功則執行後續設定
+                    if(.checkRESULT){PTConf.export(transaction)}
+                    
+                    #匯出交易紀錄
+                    append.to.file(data = as.data.frame(transaction), path = paste0(OrderNO, ".csv"))
+                    m.act <-readline(paste0("交易序號回傳 :", transaction[1]
+                                            , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
+                    
+                    if(Auto.positionCLOSE)
                     {
-                      print(paste("[訊息] 執行成交後續設定"))
-                      Price.buyin <- as.numeric(account.info(info =transaction, by.name = "price" ))
-                      
-                      PCL <- -1
-                      .path <- extra.data(name="price.Buyin", p.mode = "path")
-                      .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-                      .msg.path <- extra.data(name="create.positionLONG", p.mode = "path")
-                      unlink(.path)
-                      append.to.file(data=Price.buyin
-                                     , path=.path)
-                      append.to.file(data=PCL
-                                     , path=.PCL.path)
-                      file.create(.msg.path)
-                      if(Auto.positionCLOSE)
-                      {
-                        next.step <- "7"
-                      }                     
-                    }             
+                      next.step <- "7"
+                    }                     
                 },
             # # # 多重建倉法
             # "9" ={
@@ -324,6 +310,43 @@ repeat
                   if(simu){simu <-FALSE}
                   else{simu <-TRUE}
                  },
+            EPM ={
+              
+                  .count<-0
+                  
+                  while(TRUE)
+                  {
+                    
+                    .count <-.count+1
+                    if(.count >50)
+                    {
+                      if(!connect.test(x=6)){print(paste("[錯誤] 無法建立聯線."))}
+                    }
+                    
+                    .portfolio.current <-portfolio.monitor()
+                    
+                    if(.portfolio.current ==-1)
+                    {
+                      print("[訊息] 待命中，目前無倉位.")
+                    }else{
+                      print(paste0("[訊息] <未沖銷期貨浮動損益> :", .portfolio.current))
+                    }
+                    
+                    #關閉顯示
+                    if(file.exists(EPM.path)) 
+                    {
+                      unlink(EPM.path)
+                      beep(sound = 2)
+                      m.action <- readline(paste0("[動作] 跳出訊息視窗，press any key pls..."))
+                      break
+                    } 
+                    
+                    Sys.sleep(1)
+                    
+                  }
+              
+
+            },
             RSS ={file.create(RSS.path)},
             MSGL ={
                     msg.lite <- TF.Switch(msg.lite)
@@ -335,6 +358,19 @@ repeat
                                    , path=.path)
                     result <- readline("PLS. PRESS ANY KEY to continue...")
                   
+            },
+            # BorS <- "B"
+            # Price <- Price.current()
+            EPPT ={
+                    if(Price !=0)
+                    {
+                      m.action <-readline(paste0("Price :", Price, " & PCL:", PCL," ready for export,(Y/N)"))
+                      if(m.action =="Y")
+                      {
+                        PTConf.export(.Price =Price ,.PCL = PCL)              
+                        
+                      }
+                    }
             },
             EMSS ={
                     SIMU.DATA.Server()
@@ -390,7 +426,7 @@ repeat
                     while(TRUE)
                     {
                       .price <- as.numeric(readline("CUSTOM.CreateLONG.price :"))
-                      if(.price >0){break}
+                      if(.price >0 || is.na(.price)){break}
                     }
                     .path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
                     unlink(.path)
@@ -401,7 +437,7 @@ repeat
                     while(TRUE)
                     {
                       .price <- as.numeric(readline("CUSTOM.CreateSHORT.price :"))
-                      if(.price >0){break}
+                      if(.price >0 || is.na(.price)){break}
                     }
                     .path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
                     unlink(.path)

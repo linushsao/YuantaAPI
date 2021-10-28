@@ -144,7 +144,7 @@ repeat
              #匯出交易序號
              append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
              #匯出交易PCL
-             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "bors", p.mode = "path"), m.append = FALSE) 
+             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
              
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
@@ -193,6 +193,8 @@ repeat
              
              #匯出交易序號
              append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             #匯出交易PCL
+             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
              
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
@@ -215,6 +217,8 @@ repeat
              
              #匯出交易序號
              append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             #匯出交易PCL
+             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
              
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
@@ -237,6 +241,8 @@ repeat
              
              #匯出交易序號
              append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             #匯出交易PCL
+             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
              
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              

@@ -33,7 +33,7 @@ MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
 
 
 switch.stopPORT <-5 #MA5出場
-switch.stopPORT_RSI <-35 #RSI30出場
+switch.stopPORT_RSI <-40 #RSI30出場
 .path <-extra.data(name="switch_to.ma", p.mode = "path")
 append.to.file(data=switch.stopPORT
                , path=.path)

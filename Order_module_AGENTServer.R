@@ -46,6 +46,7 @@ Position.AGENT<-function()
   path.closeALLPosition     <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
   path.price.Buyin     <- extra.data(name="price.Buyin", p.mode = "path")
   path.price.PCL     <- extra.data(name="price.PCL", p.mode = "path")
+  path.OrderNO <-extra.data(name="OrderNO", p.mode = "path")
   
   path.MA5.CREATE.LONG <- extra.data(name="MA5.CREATE.LONG", p.mode = "path") 
   path.MA10.CREATE.LONG <- extra.data(name="MA10.CREATE.LONG", p.mode = "path") 
@@ -61,6 +62,7 @@ Position.AGENT<-function()
   unlink(path.closeALLPosition)
   unlink(path.price.Buyin)
   unlink(path.price.PCL)
+  unlink(path.OrderNO)
   unlink(path.create.positionLONG)
   unlink(path.create.positionSHORT)
   unlink(RAGS.path)
@@ -147,7 +149,7 @@ Position.AGENT<-function()
       
       .stopPORT.price.LONG <- max(c(extremes_Line_Upper, Bolling_Line_upper))
       .stopPORT.price.SHORT <- min(c(extremes_Line_lower, Bolling_Line_lower))  
-
+      
       #計算價格變動
       if(file.exists(path.price.Buyin)) {Price.buyin.PRE <- as.numeric(extra.data(name="price.Buyin"))}
       if(file.exists(path.price.PCL)) {Price.PCL <- as.numeric(extra.data(name="price.PCL"))}
@@ -163,6 +165,7 @@ Position.AGENT<-function()
         unlink(path.closeALLPosition)
         unlink(path.price.Buyin)
         unlink(path.price.PCL)
+        unlink(path.OrderNO)
         unlink(path.create.positionLONG)
         unlink(path.create.positionSHORT)
         unlink(RAGS.path)
@@ -236,63 +239,67 @@ Position.AGENT<-function()
       
       #已建倉
       ## return(c(.bors, .price, .amount, .pcl, .portfolio))
-      OnOpen.data <-portfolio.monitor()
       
-      if(OnOpen.data[2] !=0)
+      ##確認交易結果
+      ##檔案price.Buyin不存在而price.PCL存在，表示執行建倉但未確認結果
+      if(!file.exists(path.price.Buyin) &&
+         file.exists(path.price.PCL))
       {
+        OnOpen.data <-portfolio.monitor()
         
-        OnOpen.OrderNO <- extra.data(name="OrderNO")
-        
-        # OnOpen.price <- as.numeric(OnOpen.data[2])
-        # OnOpen.pcl <- as.numeric(OnOpen.data[4])
-        # OnOpen.portfolio <- as.numeric(OnOpen.data[5])
-        
-        #依下單回傳序號解碼成文字向量，並確認交易結果
-        list.RESULT <-PTrading.confirm(OnOpen.OrderNO)
-        if(!is.logical(list.RESULT))
+        if(OnOpen.data[2] !=0)
         {
-          .checkRESULT <-list.RESULT[[1]]
-          transaction  <-list.RESULT[[2]]
-
-          # #匯出交易紀錄
-          append.to.file(data = transaction, path = extra.data(name = "transaction", p.mode = "path"), m.append = FALSE)
-          #交易成功則執行後續設定
-          if(.checkRESULT)
+          
+          OnOpen.OrderNO <- extra.data(name="OrderNO")
+          
+          #依下單回傳序號解碼成文字向量，並確認交易結果
+          list.RESULT <-PTrading.confirm(OnOpen.OrderNO)
+          if(!is.logical(list.RESULT))
           {
-            .price.path <- extra.data(name="price.Buyin", p.mode = "path")
-            .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-            #Price.buyin
-            append.to.file(data=transaction[2]
-                           , path=.price.path, m.append = FALSE)
-            #PCL
-            append.to.file(data=transaction[4]
-                           , path=.PCL.path, m.append = FALSE)
+            .checkRESULT <-list.RESULT[[1]]
+            transaction  <-list.RESULT[[2]]
             
-            OnOpen.bors <-account.info(by.name = "bors", info = transaction)
-            OnOpen.price <- as.numeric(account.info(by.name = "price", info = transaction))
-            switch (OnOpen.bors,
-                    B = {
-                      create.price <- OnOpen.price
-                      switch.create.positionLONG =TRUE
-                      alarm.msg <- "CR.PL"
-                    },
-                    S = {
-                      create.price <- OnOpen.price *-1
-                      switch.create.positionSHORT =TRUE
-                      alarm.msg <- "CR.PL"
-                    }
-            )
+            # #匯出交易紀錄
+            append.to.file(data = transaction, path = extra.data(name = "transaction", p.mode = "path"), m.append = FALSE)
+            #交易成功則執行後續設定
+            if(.checkRESULT)
+            {
+              .price.path <- extra.data(name="price.Buyin", p.mode = "path")
+              .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
+              #Price.buyin
+              append.to.file(data=transaction[2]
+                             , path=.price.path, m.append = FALSE)
+              #PCL
+              append.to.file(data=transaction[4]
+                             , path=.PCL.path, m.append = FALSE)
+              
+              OnOpen.bors <-account.info(by.name = "bors", info = transaction)
+              OnOpen.price <- as.numeric(account.info(by.name = "price", info = transaction))
+              switch (OnOpen.bors,
+                      B = {
+                        create.price <- OnOpen.price
+                        switch.create.positionLONG =TRUE
+                        alarm.msg <- "CR.PL"
+                      },
+                      S = {
+                        create.price <- OnOpen.price *-1
+                        switch.create.positionSHORT =TRUE
+                        alarm.msg <- "CR.PL"
+                      }
+              )
+            }
+            
+            print(paste0("交易序號回傳 :", OnOpen.OrderNO
+                         , "，交易結果 :", transaction[2]))
+            
+          }else{
+            print(paste0("[錯誤] 交易結果有誤，序號回傳:", OnOpen.OrderNO))
           }
-
-          print(paste0("交易序號回傳 :", OnOpen.OrderNO
-                                  , "，交易結果 :", transaction[2]))
-
-        }else{
-          print(paste0("[錯誤] 交易結果有誤，序號回傳:", OnOpen.OrderNO))
-        }
-        
-        beep(sound = 2)  
+          
+          beep(sound = 2)  
+        }        
       }
+      
       
       
       
@@ -455,8 +462,8 @@ Position.AGENT<-function()
            !switch.create.positionLONG && #非標示已手動完成建倉
            !Finished.create.positionLONG) #非標示已AGENT function完成建倉
         {
-          if(create.price -Price.open <=MatchBUFFER && 
-             create.price -Price.curr <=MatchBUFFER*0.5 &&
+          if(Price.curr >create.price -MatchBUFFER &&
+             Price.curr <create.price &&
              !ENABLE.ByMA)
           {
             ENABLE.ByMA <-TRUE
@@ -479,31 +486,15 @@ Position.AGENT<-function()
                                    , .simu=simu)
             
             Sys.sleep(1)
-            #依下單回傳序號解碼成文字向量，並確認交易結果
-            list.RESULT <-PTrading.confirm(OrderNO)
-            if(!is.logical(list.RESULT))
+            #匯出交易序號
+            append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+            #匯出交易PCL
+            append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+            
+            if(Auto.positionCLOSE)
             {
-              .checkRESULT <-list.RESULT[[1]]
-              transaction  <-list.RESULT[[2]]
-              
-              #匯出交易紀錄
-              append.to.file(data = as.data.frame(transaction), path = paste0(msg.path
-                                                                              , "/"
-                                                                              , OrderNO, ".csv"))
-              #交易成功則執行後續設定
-              if(.checkRESULT){PTConf.export(transaction)}
-              
-              
-              m.act <-readline(paste0("交易序號回傳 :", transaction[1]
-                                      , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
-              
-              if(Auto.positionCLOSE)
-              {
-                next.step <- "7"
-              }               
-            }else{
-              m.act <-readline(paste0("[錯誤] 交易結果有誤，序號回傳:", OrderNO, " <Press Any Key pls.>"))              
-            }
+              next.step <- "7"
+            }               
             
             Finished.create.positionLONG <-TRUE
           }
@@ -513,8 +504,8 @@ Position.AGENT<-function()
            !switch.create.positionSHORT &&
            !Finished.create.positionSHORT)
         {
-          if(create.price -Price.open >=MatchBUFFER*-1 && 
-             create.price -Price.curr >=MatchBUFFER*-1*0.5 &&
+          if(Price.curr <create.price +MatchBUFFER &&
+             Price.curr >create.price &&
              !ENABLE.ByMA)
           {
             ENABLE.ByMA <-TRUE
@@ -537,31 +528,14 @@ Position.AGENT<-function()
                                    , .simu=simu)
             
             Sys.sleep(1)
-            #依下單回傳序號解碼成文字向量，並確認交易結果
-            list.RESULT <-PTrading.confirm(OrderNO)
-            if(!is.logical(list.RESULT))
+            #匯出交易序號
+            append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+            #匯出交易PCL
+            append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+            if(Auto.positionCLOSE)
             {
-              .checkRESULT <-list.RESULT[[1]]
-              transaction  <-list.RESULT[[2]]
-              
-              #匯出交易紀錄
-              append.to.file(data = as.data.frame(transaction), path = paste0(msg.path
-                                                                              , "/"
-                                                                              , OrderNO, ".csv"))
-              #交易成功則執行後續設定
-              if(.checkRESULT){PTConf.export(transaction)}
-              
-              
-              m.act <-readline(paste0("交易序號回傳 :", transaction[1]
-                                      , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
-              
-              if(Auto.positionCLOSE)
-              {
-                next.step <- "7"
-              }               
-            }else{
-              m.act <-readline(paste0("[錯誤] 交易結果有誤，序號回傳:", OrderNO, " <Press Any Key pls.>"))              
-            }
+              next.step <- "7"
+            }               
             
             Finished.create.positionSHORT <-TRUE
           }

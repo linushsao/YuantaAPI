@@ -41,7 +41,7 @@ append.to.file(data=switch.stopPORT
 DateFolder <- ""
 result <- "  "
 gear <-0
-BASE_portfolio <- 10  #無虧損停利價差
+BASE_portfolio <- 10  #基本獲利
 Stop_portfolio <- 15 #動態停利價差
 default.enable_stopPORTFOLIO <- 15 #固定停利價差
 default.enable_stopHIGH.PORTFOLIO <- 25 #固定停利價差

@@ -4,6 +4,7 @@ Position.stop<-function()
 {
   
   enable.ddm <- FALSE
+  ENABLE.SP.PORT <-FALSE
   for.LONG <- 1
   for.SHORT <- -1
   Price.diff <-0 #漲跌幅
@@ -196,6 +197,20 @@ Position.stop<-function()
           }          
         }
         
+        #壓力支撐區形成
+        if( (PCL ==for.LONG && 
+             Price.diff >=default.enable_stopHIGH.PORTFOLIO ) #多倉
+            ||
+            (PCL ==for.SHORT && 
+             Price.diff <=default.enable_stopHIGH.PORTFOLIO *-1) )#空倉
+        {
+          
+          if(PCL ==for.LONG)  {print(paste("[設定] 啟動多頭撐壓區停利點，價位 :", Price.curr))}
+          if(PCL ==for.SHORT) {print(paste("[設定] 啟動空頭撐壓區停利點，價位 :", Price.curr))}
+          
+          ENABLE.SP.PORT <-TRUE
+        }
+        
         #平倉檢查
         ##檢查保本平倉
         if(ddm.times.keepNOLoss.price !=0)
@@ -326,11 +341,11 @@ Position.stop<-function()
         
         #壓力支撐區形成平倉
         if( (PCL ==for.LONG && 
-             Price.diff >=default.enable_stopHIGH.PORTFOLIO &&
+             ENABLE.SP.PORT &&
              Price.reachLIMITED.times.Long >Price.reachLIMITED.times.Limited) #多倉
             ||
             (PCL ==for.SHORT && 
-             Price.diff <=default.enable_stopHIGH.PORTFOLIO *-1 &&
+             ENABLE.SP.PORT &&
              Price.reachLIMITED.times.Short >Price.reachLIMITED.times.Limited) ) #空倉
         {
           if(PCL ==for.LONG)

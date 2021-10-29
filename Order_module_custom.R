@@ -1,13 +1,52 @@
-#
-BorS2PCL <- function(x)
+multi.file.remove <-function(.path, .pattern=NULL, .tail_keep=0)
 {
-  switch (x,
-          B = return(1),
-          b = return(1),
-          S = return(-1),
-          s = return(-1),
-          return(0)
-  )
+  
+  if(is.null(.pattern))
+  {
+    list.msg.file <-list.files(path = .path)
+  }else{
+    list.msg.file <-list.files(path = .path, pattern = .pattern)
+  } 
+  
+  for(miu in 1:length(list.msg.file))
+  {
+    .file.path <-paste0(.path, "/", list.msg.file[miu])
+    
+    if(.tail_keep >0)
+    {
+      .tail.msg <- m.tail(path = .file.path)
+      append.to.file(data = .tail.msg, path = .file.path, m.append = FALSE)
+      
+    }else{
+      unlink(.file.path)
+      
+    }
+    
+  }
+}
+
+
+#
+BorS2PCL <- function(x, .mode="en")
+{
+  if(.mode =="en")
+  {
+    switch (x,
+            B = return(1),
+            b = return(1),
+            S = return(-1),
+            s = return(-1),
+            return(0)
+    )    
+  }
+  
+  if(.mode =="zh")
+  {
+    
+    if(length(grep("買",x)) !=0){return(1)}
+    if(length(grep("賣",x)) !=0){return(-1)}
+  }
+  
 }
 
 info2PCL <- function(x)
@@ -251,7 +290,7 @@ PTrading.confirm <-function(.OrderNO=NULL, .times=NULL)
       } 
     }else{
       return(FALSE)
-      }
+    }
     
   }
   
@@ -312,6 +351,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
         result[2] <-CONNECTED.ANSWER.BorS.WrongPARAM
         result[5] <-Price.current()
         result[8] <-FALSE
+        names(result) <- transaction.name
         
         return(result)
       }        
@@ -330,6 +370,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
         result[2] <-CONNECTED.ANSWER.RightPARAM.NoDATA
         result[5] <-Price.current()
         result[8] <-FALSE
+        names(result) <- transaction.name
         
         return(result)
       }
@@ -341,6 +382,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
         result[2] <-UNCONNECTED.ANSWER.RightPARAM
         result[5] <-Price.current()
         result[8] <-FALSE
+        names(result) <- transaction.name
         
         return(result)
       } 
@@ -352,6 +394,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
         result[2] <-COMMON.ANSWER.EmptyPARAM
         result[5] <-Price.current()
         result[8] <-FALSE
+        names(result) <- transaction.name
         
         return(result)
       } 
@@ -359,6 +402,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
       #下單連接成功
       result <- strsplit(.info, ",")[[1]]
       result[8] <-TRUE
+      names(result) <- transaction.name
       
       return(result)
       
@@ -368,6 +412,7 @@ account.info <- function(code=NULL, by.name=NULL, info)
       result[2] <-ANSWER.ALLDeal
       result[5] <-Price.current()
       result[8] <-FALSE
+      names(result) <- transaction.name
       
       return(result)
     }
@@ -430,10 +475,10 @@ trans.lang <-function(mode, param)
   )
 }
 # 
-m.tail <-function(path)
+m.tail <-function(path, .tail.num=1)
 {
   price.file <- read.csv(path, header = FALSE, fileEncoding = "big5")
-  price.tail <- tail(price.file, 1)
+  price.tail <- tail(price.file, .tail.num)
   return(price.tail)
 }
 

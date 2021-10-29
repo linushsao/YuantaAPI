@@ -11,9 +11,13 @@ simu <-TRUE
 CODE.SIMU <- "SIMU"
 
 transaction <-NULL #交易結果訊息向量
+transaction.name <-c("OrderNO", "Status", "Product", "BorS", "Price"
+                     , "Amount", "Time", "Company", "Account", "Exchange"
+                     , "OrderSeries", "BeforeChanged", "AfterChanged", "DealNO", "SubAccount"
+                     , "Salesperson", "Commission")
 
 ANSWER.POSITION.AFTER.CONNECT <-8
-LENGTH.COLLECT.ANSWER <-8
+LENGTH.COLLECT.ANSWER <-17
 
 CONNECTED.ANSWER.BorS.WrongPARAM <- "Delete KeyNo"
 CONNECTED.ANSWER.RightPARAM.NoDATA <-"Nodata"
@@ -110,8 +114,8 @@ shortcut.key <-function()
   print("(PCL)PCL")
   print("")
   
-  print("(EDPC)enable.default.P.CHECK") 
-  print("(ESSP)enable.stable.S.P.")
+  # print("(EDPC)enable.default.P.CHECK") 
+  # print("(ESSP)enable.stable.S.P.")
   print("")
   
   print("(EAS)ENABLE_AGENT.SERVERE") 

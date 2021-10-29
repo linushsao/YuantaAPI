@@ -16,14 +16,18 @@ setwd("C:/Temp/")
 msg.path <- "C:/Temp/"
 price.path <- "C:/Temp/msg/"
 realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
+#
+# LOADED_Order_module_POSITION.R =FALSE
+# LOADED_Order_module_SIMUServer.R =FALSE
+# LOADED_Order_module_AGENTServer.R =FALSE
 
 ##
 #### 設定額外函式位置 #### 
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
-source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
-source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
-source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
+# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
+# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
+# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_DataMGR.R")
 
 source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_config.R")
@@ -61,8 +65,6 @@ repeat
   
   print(paste0("STABLE S.P.        : ", default.enable_stopPORTFOLIO)) 
   print(paste0("AUTO.S.P.          : ", Stop_portfolio)) 
-  print(paste0("ENABLE default P.C : ", enable.defaultPORT.check)) 
-  print(paste0("ENABLE STABLE S.P. : ", enable.STABLE.Stop.PORT))
   print(paste0("Auto.pos.CLOSE     : ", Auto.positionCLOSE))
   print(paste0("Max.DDM            : ", Max.DDM))
   print(paste0("DayTRADE           : ", Daytrade))
@@ -91,7 +93,6 @@ repeat
   {
     switch(action,
            
-           # CL ={result <- ClosePositionAll()},
            CP ={result <- ChangeProd()},
            "5"  ={
              result <- CancelAll()
@@ -139,7 +140,7 @@ repeat
                                     , .Qty=Qty
                                     , .Daytrade=Daytrade
                                     , .simu=simu)
-              
+             
              Sys.sleep(1)
              #匯出交易序號
              append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
@@ -152,31 +153,6 @@ repeat
              {
                next.step <- "7"
              } 
-             # #依下單回傳序號解碼成文字向量，並確認交易結果
-             # list.RESULT <-PTrading.confirm(OrderNO)
-             # if(!is.logical(list.RESULT))
-             # {
-             #   .checkRESULT <-list.RESULT[[1]]
-             #   transaction  <-list.RESULT[[2]]
-             #   
-             #   # #匯出交易紀錄
-             #   # append.to.file(data = as.data.frame(transaction), path = paste0(msg.path
-             #   #                                                                 , "/"
-             #   #                                                                 , OrderNO, ".csv"))
-             #   #交易成功則執行後續設定
-             #   if(.checkRESULT){PTConf.export(transaction)}
-             #   
-             #   
-             #   # m.act <-readline(paste0("交易序號回傳 :", transaction[1]
-             #   #                         , "，交易結果 :", transaction[2], " <Press Any Key pls.>"))
-             #   
-             #   if(Auto.positionCLOSE)
-             #   {
-             #     next.step <- "7"
-             #   }               
-             # }else{
-             #   m.act <-readline(paste0("[錯誤] 交易結果有誤，序號回傳:", OrderNO, " <Press Any Key pls.>"))              
-             # }  
              
            },
            "2"  ={
@@ -250,48 +226,20 @@ repeat
              {
                next.step <- "7"
              } 
-                                
+             
            },
-           # # # 多重建倉法
-           # "9" ={
-           #         Position.multi.create()
-           #         if(Auto.positionCLOSE)
-           #         {
-           #           next.step <- "7"
-           #         }
-           # },
-           # # 切換保本模式
-           # "3" ={
-           #       price.diff <-abs(as.numeric(readline("KEEP.CASH MOD(adjust buffer) :")))
-           #       Price.buyin <-0
-           #       PCL <-0
-           #       },
-           # 停利停損>RSI超買超賣法
-           # "9"  ={
-           #         Position.stop(p.mode = 2)
-           #         Price.buyin <-0
-           #         PCL <-0
-           #       },
-           # 停利停損>回檔法
+           
            "7" ={
+             # if(!LOADED_Order_module_POSITION.R)
+             # {
+             source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
+             # }
+             
              Position.stop()
+             rm(Position.stop)
              Price.buyin <-0
              PCL <-0
            }, 
-           # "77" ={
-           #       Position.stop(p.mode = 77)
-           #       Price.buyin <-0
-           #       PCL <-0
-           #      }, 
-           # "++"  = if(as.numeric(Price) != 0)
-           #   { gear = gear +1
-           #   Price = as.character(as.numeric(Price)+gear)},
-           # "--"  = if(as.numeric(Price) != 0)
-           #   { gear = gear -1
-           #   Price = as.character(as.numeric(Price)+gear)},
-           # "+-"  = if(as.numeric(Price) != 0)
-           #   { gear = 0
-           #   Price = as.character(as.numeric(Price))},
            
            OM ={result <- Place.OrderMKT()},
            P  ={Price <- readline("Price bundle :")
@@ -343,7 +291,7 @@ repeat
                  .price.current <- as.numeric(Price.current())
                  .price.portfolio <- as.numeric(.portfolio.current[5])
                  
-                 print(paste0("[訊息] <浮動損益> :"
+                 m_msg(paste0("[訊息] <浮動損益> :"
                               , as.numeric(.price.current -.price.Buyin), " "
                               ,.price.Buyin, " >>",.price.current, " "
                               , .price.portfolio))
@@ -358,7 +306,6 @@ repeat
                  break
                } 
                
-               Sys.sleep(1)
                
              }
              
@@ -377,8 +324,7 @@ repeat
              result <- readline("PLS. PRESS ANY KEY to continue...")
              
            },
-           # BorS <- "B"
-           # Price <- Price.current()
+           
            EPPT ={
              if(Price !=0)
              {
@@ -387,8 +333,6 @@ repeat
                m.action <-readline(paste0("Price :", m.price, " & PCL:", m.pcl," ready for export,(Y/N)"))
                if(m.action =="Y")
                {
-                 # path.price.Buyin     <- extra.data(name="price.Buyin", p.mode = "path") 
-                 # path.price.PCL     <- extra.data(name="price.PCL", p.mode = "path")
                  append.to.file(data=m.price
                                 , path=extra.data(name="price.Buyin", p.mode = "path"), m.append = FALSE)
                  append.to.file(data=m.pcl
@@ -398,10 +342,29 @@ repeat
              }
            },
            EMSS ={
+             # if(!LOADED_Order_module_SIMUServer.R)
+             # {
+             source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
+             # }
              SIMU.DATA.Server()
+             rm(SIMU.DATA.Server)
            },
            EAS ={
+             
+             source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
              Position.AGENT()
+             rm(Position.AGENT)
+           },
+           DCL ={
+             while(TRUE)
+             {
+               .price <- as.numeric(readline("Del Count Limited :"))
+               if(.price >0 || is.na(.price)){break}
+             }
+             .path <-extra.data(name="del.count.limited", p.mode = "path")
+             append.to.file(data=.price
+                            , path=.path
+                            , m.append = FALSE)
            },
            SPUT ={
              Price.reachLIMITED.times.Limited <-as.numeric(readline("Quantity bundle :"))
@@ -417,14 +380,6 @@ repeat
                switch.DATA.Source <- TF.Switch(switch.DATA.Source)
                print(paste("[錯誤] 資料源不存在，目前模式 :", switch.DATA.Source))
              }
-           },
-           EDPC ={
-             if(enable.defaultPORT.check){enable.defaultPORT.check <-FALSE}
-             else{enable.defaultPORT.check <-TRUE}
-           },
-           SDP ={
-             if(enable.STABLE.Stop.PORT){enable.STABLE.Stop.PORT <-FALSE}
-             else{enable.STABLE.Stop.PORT <-TRUE}
            },
            DT ={
              if(Daytrade =="0"){Daytrade <-"1"}
@@ -444,9 +399,7 @@ repeat
                  Stop_portfolio.code >2)
              {Stop_portfolio.code <-1}
            },
-           ESSP ={
-             file.create(enable.STABLE.Stop.PORT.path)
-           },
+           
            CCL ={
              while(TRUE)
              {

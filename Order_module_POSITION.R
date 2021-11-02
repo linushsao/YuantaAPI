@@ -28,8 +28,10 @@ Position.stop<-function()
   REGISTER.ClosePOSITION <- c(TRUE, rep(FALSE, 8))
   CHECK.ClosePOSITION <- c(rep(FALSE, 9))
   
-  PCL <-as.numeric(extra.data(name="price.PCL"))
-  Price.in <-as.numeric(extra.data(name="price.Buyin")) 
+  # PCL <-as.numeric(extra.data(name="price.PCL"))
+  # Price.in <-as.numeric(extra.data(name="price.Buyin")) 
+  PCL <-as.numeric(get.conf(name="price.PCL", dataset = dataset.name))
+  Price.in <-as.numeric(get.conf(name="price.Buyin", dataset = dataset.name)) 
   
   while(TRUE)
   {
@@ -135,10 +137,12 @@ Position.stop<-function()
     Stop_PORTFOLIO.price.RSI <-as.numeric(extra.data(name="RSI"))
     
     #手動平倉
-    msg.close.ALLPOSITION  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-    if(file.exists(msg.close.ALLPOSITION))
+    # msg.close.ALLPOSITION  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
+    # if(file.exists(msg.close.ALLPOSITION))
+    if(!is.null(get.conf(name = "close.ALLPOSITION", dataset = dataset.name)))
     {
-      unlink(msg.close.ALLPOSITION)
+      # unlink(msg.close.ALLPOSITION)
+      rm.conf(name = "close.ALLPOSITION", dataset = dataset.name)
       
       beep(sound = 2)
       print(paste("[動作] 執行手動平倉價位 :", Price.curr, Price.diff))

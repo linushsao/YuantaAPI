@@ -1,53 +1,127 @@
+#source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_LITE.R")
 #
-rm(list=ls())
-#CUstom LIB.
-LIBRS <- c('roxygen2')
-sapply(LIBRS,library,character.only=TRUE)
-setwd("C:/Users/linus/Documents/Project/1.R/Analysis.of.trading.strategies/ExtraPackages/linus/stock.Analyze/")
-library('roxygen2')
-roxygenize()
-library("stock.Analyze")
+action <- readline("remove all obj&value? (y/N)")
+if(action != "") {rm(list=ls())}
+
 
 #
 library("beepr")
+library("sound")
+library("audio")
+library("magrittr")
 setwd("C:/Temp/")
 
 ##
 msg.path <- "C:/Temp/"
 price.path <- "C:/Temp/msg/"
+sound.path <-"C:/Temp/wav/"
 realdata.path <- "C:/Users/linus/Documents/Project/9.Shared.Data/8.forSmartAPI/"
-#
-# LOADED_Order_module_POSITION.R =FALSE
-# LOADED_Order_module_SIMUServer.R =FALSE
-# LOADED_Order_module_AGENTServer.R =FALSE
-
+extra.lib.path <-"C:/Users/linus/Documents/Project/1.R/"
+dataset.name <-"Futures.Tools"
 ##
+##Analysis.of.trading.strategies
+source(paste0(extra.lib.path, "Analysis.of.trading.strategies/ExtraPackages/linus/stock.Analyze/R/m_misc.R"))
+source(paste0(extra.lib.path, "Analysis.of.trading.strategies/ExtraPackages/linus/stock.Analyze/R/m_env.R"))
 #### 設定額外函式位置 #### 
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_base.R")
 source("C:/Users/linus/Documents/Project/6.APITols/Order_module_custom.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
-# source("C:/Users/linus/Documents/Project/6.APITols/Order_module_AGENTServer.R")
 source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_DataMGR.R")
-
 source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_config.R")
 
 ##
+##
+
+action <- readline("交易資料重設? (y/N)")
+if(action != "")
+{
+  m_msg("[設定] 交易資料回復系統預設值...")
+  PT.data.reset()
+}
+
+
+shortcut.key <-function()
+{
+  print("")
+  print("")
+  
+  Price <- Price.current()
+  
+  print(paste0("-----assign( c(O, I, C, R), MA )-----"))
+  
+  print(paste0("DataTIME           : ", date.format)) 
+  print(paste0("Product            : ", ifelse(switch.DATA.Source, Product, MXFSIMU.Name) )) 
+  print(paste0("Price              : ", Price)) 
+  print(paste0("Quantity           : ", Qty)) 
+  print(paste0("BorS               : ", BorS))
+  print(paste0("MODE.XFSource      : ", trans.lang(mode="SECURTIES", switch.DATA.Source)))  
+  print(paste0("PATH.XFSource      : ", data.source.switch(get.conf(name="switch.DATA.Source"
+                                                                    , dataset = dataset.name))))  
+  
+  print("")
+  
+  print("-----COMMON FUNCTION-----")
+  print("(QR)QueryRight")
+  print("(CP)ChangePRodid")
+  print("(QA)QueryAllOrder")
+  print("(QO)QueryOnOpen")
+  print("(QU)QueryUnfinished")
+  print("(OL)Place.OrderLMT")
+  print("(OM)Place.OrderMKT")
+  print("(PR)oduct bundle")
+  print("(P)rice bundle")
+  print("(Q)uantity bundle")
+  print("(BS)Buy|Sell bundle")
+  print("(SPT)StopPORT.TYPE")
+  print("(SLT)StopLOSS.TYPE")
+  print("(DT)_switch_DayTRADE")  
+  print("(PRB)Price.buyin")
+  print("(PCL)PCL")
+  print("(SPUT)S&P Unbreaked times")
+  print("(APC)switch_Auto.pos.CLOSE")
+  print("(SDP)switch_defaultPORT") 
+  print("(SDP)switch_defaultPORT")
+  print("(SS)switch_Simulation") 
+  print("(RSS)REMOTE switch_Simulation")
+  print("(EPPT)EXPORT PTConf")
+  print("(SSPM)SWITCH StopPORT.MA")
+  print("(SSPR)SWITCH StopPORT.RSI")
+  print("")
+  
+  print("-----AGENT.SERVER FUNCTION-----")
+  print("(EAS)ENABLE_AGENT.SERVER") 
+  print("(DAGS)DISABLE_AGENT.SERVER") 
+  print("(RAGS)RESET_AGENT.SERVER") 
+  print("(RSS)REMOTE.SWITCH.SIMU_AGENT.SERVER") 
+  print("")
+  
+  print("-----PORTFOLIO.MINITOR FUNCTION-----")
+  print("(EPM)ENABLE_PORTFOLIO.MINITOR") 
+  print("")
+  
+  print("-----MXFSIMU.SERVER FUNCTION-----")
+  print("(EMSS)ENABLE_MXFSIMU.SERVER") 
+  print("(DMSS)DISABLE_MXFSIMU.SERVER")
+  print("(SMS)SWITCH MFXSource")
+  print("")
+  
+  action <- readline("[COMMAND] :")
+  return(action)
+}
 
 #測試連線結果
-print(paste("[動作] 測試卷商連線品質..."))
-
-check.result <-c()
-if(connect.test(x=6))
+m.action <-readline(paste("[是否測試卷商連線品質...[y/N]"))
+if(m.action =="Y" | m.action =="y")
 {
-  check.result <-(paste("[訊息] 聯線正常."))
+  if(connect.test())
+  {
+    check.result <-(paste("[訊息] 聯線正常."))
+  }else{
+    check.result <- (paste("[錯誤] 無法建立聯線."))
+  }
   
-}else{
-  check.result <- (paste("[錯誤] 無法建立聯線."))
+  action <- readline(COMMON.ANYKEY.TO.EXIST) 
 }
-print(check.result)
 
-action <- readline("請按ENTER繼續...")
 
 ##主程式
 #ChangeProd()
@@ -56,9 +130,12 @@ repeat
 {
   
   Price <- Price.current()
-  print(paste0("--------Fear Of Market Out--------"))
+  print(" ")
+  print(" ")
+  
+  print(paste0("-----assign( c(O, I, C, R), MA )-----"))
   print(paste0("DataTIME           : ", date.format)) 
-  print(paste0("Product            : ", Product)) 
+  print(paste0("Product            : ", ifelse(switch.DATA.Source, Product, MXFSIMU.Name) )) 
   print(paste0("Price              : ", Price)) 
   print(paste0("Quantity           : ", Qty)) 
   print(paste0("BorS               : ", BorS))
@@ -74,8 +151,10 @@ repeat
   print(paste0("switch.stopPORT.RSI: ", switch.stopPORT_RSI))
   
   print(paste0("S&P Unbreaked time : ", Price.reachLIMITED.times.Limited))
+  print(paste0("MODE.XFSource      : ", trans.lang(mode="SECURTIES", switch.DATA.Source))) 
+  print(paste0("PATH.XFSource      : ", data.source.switch(get.conf(name="switch.DATA.Source"
+                                                                    , dataset = dataset.name))))  
   print(paste0("Simulation         : ", simu))  
-  print(paste0("REAL.XFSource      : ", switch.DATA.Source))  
   
   print(" ")
   print("(SCK) ShortCUT KET MAP")
@@ -107,7 +186,7 @@ repeat
            print(result)
            },
            OL ={result <- Place.OrderLMT()},
-           SCK =shortcut.key(),
+           SCK ={next.step <-shortcut.key()},
            CNT ={
              print(paste("[動作] 測試卷商連線品質..."))
              
@@ -125,8 +204,8 @@ repeat
            },
            
            "0" ={
-             msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-             file.create(msg.file)
+             msg.file  <- set.conf(name="close.ALLPOSITION", value = "", dataset = dataset.name)
+             # file.create(msg.file)
              OrderNO <- ClosePositionAll()
              print(paste("交易序號回傳 :", OrderNO))
              
@@ -141,12 +220,13 @@ repeat
                                     , .Daytrade=Daytrade
                                     , .simu=simu)
              
-             Sys.sleep(1)
-             #匯出交易序號
-             append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-             #匯出交易PCL
-             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
-             
+             # #匯出交易序號
+             # m_env(name="OrderNO", value =OrderNO, dataset =dataset.name)
+             # # append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             # #匯出交易PCL
+             # m_env(name="price.PCL", value =BorS2PCL(BorS), dataset =dataset.name)
+             # # append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+             # 
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
              if(Auto.positionCLOSE)
@@ -165,13 +245,12 @@ repeat
                                     , .Daytrade=Daytrade
                                     , .simu=simu)
              
-             Sys.sleep(1)
-             
-             #匯出交易序號
-             append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-             #匯出交易PCL
-             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
-             
+             # #匯出交易序號
+             # m_env(name="OrderNO", value =OrderNO, dataset =dataset.name)
+             # # append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             # #匯出交易PCL
+             # append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+             # 
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
              if(Auto.positionCLOSE)
@@ -189,13 +268,11 @@ repeat
                                     , .Daytrade=Daytrade
                                     , .simu=simu)
              
-             Sys.sleep(1)
-             
-             #匯出交易序號
-             append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-             #匯出交易PCL
-             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
-             
+             # #匯出交易序號
+             # append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             # #匯出交易PCL
+             # append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+             # 
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
              if(Auto.positionCLOSE)
@@ -213,13 +290,11 @@ repeat
                                     , .Daytrade=Daytrade
                                     , .simu=simu)
              
-             Sys.sleep(1)
-             
-             #匯出交易序號
-             append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-             #匯出交易PCL
-             append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
-             
+             # #匯出交易序號
+             # append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+             # #匯出交易PCL
+             # append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+             # 
              m.act <-readline(paste0("交易序號回傳 :", OrderNO, " <Press Any Key pls.>"))
              
              if(Auto.positionCLOSE)
@@ -230,7 +305,6 @@ repeat
            },
            
            "7" ={
-             # if(!LOADED_Order_module_POSITION.R)
              # {
              source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
              # }
@@ -239,6 +313,16 @@ repeat
              rm(Position.stop)
              Price.buyin <-0
              PCL <-0
+           },
+           
+           "9" ={
+             # {
+             source("C:/Users/linus/Documents/Project/6.APITols/FutureTools_StopPORTFOLIO.R")
+             # }
+             
+             stop.Portfolio.lite()
+             rm(stop.Portfolio.lite)
+   
            }, 
            
            OM ={result <- Place.OrderMKT()},
@@ -258,13 +342,13 @@ repeat
            
            PRB ={Price.buyin <- as.numeric(readline("Price.buyin bundle :"))},
            PCL ={PCL <- as.numeric(readline("PCL bundle(1/-1):"))},
-           APC ={
-             if(Auto.positionCLOSE){Auto.positionCLOSE <-FALSE}
-             else{Auto.positionCLOSE <-TRUE}
+           APC ={Auto.positionCLOSE <-TF.Switch(Auto.positionCLOSE)
+           # if(Auto.positionCLOSE){Auto.positionCLOSE <-FALSE}
+           # else{Auto.positionCLOSE <-TRUE}
            },
-           SS ={
-             if(simu){simu <-FALSE}
-             else{simu <-TRUE}
+           SS ={simu <-TF.Switch(simu)
+           # if(simu){simu <-FALSE}
+           # else{simu <-TRUE}
            },
            EPM ={
              
@@ -278,29 +362,30 @@ repeat
                {
                  if(!connect.test(x=6)){print(paste("[錯誤] 無法建立聯線."))}
                }
-               
+               #讀取未平倉資料
                .portfolio.current <-portfolio.monitor()
-               # return(c(.bors, .price, .amount, .pcl, .portfolio))
+               .title <-paste0("[訊息 ", .portfolio.current[6],"]") 
                
                if(.portfolio.current[2] ==0)
                {
-                 print("[訊息] 待命中，目前無倉位.")
+                 print(paste0(.title, " 待命中，目前無倉位."))
                }else{
                  .bors <-.portfolio.current[1]
                  .price.Buyin <- as.numeric(.portfolio.current[2])
                  .price.current <- as.numeric(Price.current())
                  .price.portfolio <- as.numeric(.portfolio.current[5])
                  
-                 m_msg(paste0("[訊息] <浮動損益> :"
-                              , as.numeric(.price.current -.price.Buyin), " "
-                              ,.price.Buyin, " >>",.price.current, " "
-                              , .price.portfolio))
+                 m_msg(paste0(.title, " 浮動損益 : ", .price.portfolio
+                              , " ",as.numeric(.price.current -.price.Buyin), " "
+                              ,.price.Buyin, " >>",.price.current))
                }
                
                #關閉顯示
-               if(file.exists(EPM.path)) 
+               # if(file.exists(EPM.path)) 
+               if(!is.null(get.conf(name="REMOTE_SWITCH_PORTFOLIO.MONITOR", dataset = dataset.name)))
                {
-                 unlink(EPM.path)
+                 # unlink(EPM.path)
+                 rm.conf(name="REMOTE_SWITCH_PORTFOLIO.MONITOR", dataset = dataset.name)
                  beep(sound = 2)
                  m.action <- readline(paste0("[動作] 跳出訊息視窗，press any key pls..."))
                  break
@@ -312,42 +397,68 @@ repeat
              
            },
            
-           RSS ={file.create(RSS.path)},
+           RSS ={
+             
+             REMOTE.SWITCH.SIMULATION <- TF.Switch(REMOTE.SWITCH.SIMULATION)
+             
+             set.conf(name="REMOTE.SWITCH.SIMULATION"
+                      , value =as.character(REMOTE.SWITCH.SIMULATION)
+                      , dataset =dataset.name)
+             
+           },
+           # m.REMOTE.SWITCH.SIMULATION <-get.conf(name = "REMOTE.SWITCH.SP.SIMULATION", dataset = dataset.name)
+           RSSS ={
+             m.value <-set.conf(name = "REMOTE.SWITCH.SP.SIMULATION"
+                                , value = "FOO.BAR" 
+                                , dataset = dataset.name)
+           },
            MSGL ={
              msg.lite <- TF.Switch(msg.lite)
-             .path <-extra.data(name="msg.lite", p.mode = "path")
+             # .path <-extra.data(name="msg.lite", p.mode = "path")
              print(paste("[NEW VALUE] msg.lite :", msg.lite))
-             .price <- as.character(msg.lite)
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
-             result <- readline("PLS. PRESS ANY KEY to continue...")
+             # .price <- as.character(msg.lite)
+             # unlink(.path)
+             
+             set.conf(name="msg.lite", value =as.character(msg.lite), dataset =dataset.name)
+             # append.to.file(data=.price
+             #                , path=.path)
+             result <- readline(paste0("[NEW VALUE] msg.lite :", msg.lite, " ，PLS. PRESS ANY KEY to continue..."))
              
            },
            
            EPPT ={
-             if(Price !=0)
+             
+             m.price <-readline("Price :")
+             m.pcl   <-readline("PCL   :")
+             m.action <-readline(paste0("Price :", m.price, " & PCL:", m.pcl," ready for export,(y/N)"))
+             
+             if(m.action =="Y" || m.action =="y")
              {
-               m.price <-as.numeric(readline("Price :"))
-               m.pcl   <-as.numeric(readline("PCL   :"))
-               m.action <-readline(paste0("Price :", m.price, " & PCL:", m.pcl," ready for export,(Y/N)"))
-               if(m.action =="Y")
+               set.conf(name="price.Buyin", value =m.price, dataset =dataset.name)
+               set.conf(name="price.PCL", value =m.pcl, dataset =dataset.name)
+               if(as.numeric(m.pcl) ==1) 
                {
-                 append.to.file(data=m.price
-                                , path=extra.data(name="price.Buyin", p.mode = "path"), m.append = FALSE)
-                 append.to.file(data=m.pcl
-                                , path=extra.data(name="price.PCL", p.mode = "path"), m.append = FALSE)              
-                 
+                 set.conf(name="switch.create.positionLONG", value ="TRUE", dataset =dataset.name)
+                 set.conf(name="switch.create.positionSHORT", value ="FALSE", dataset =dataset.name)
                }
+               if(as.numeric(m.pcl) ==-1)
+               {
+                 set.conf(name="switch.create.positionLONG", value ="FALSE", dataset =dataset.name)
+                 set.conf(name="switch.create.positionSHORT", value ="TRUE", dataset =dataset.name)
+               }
+               
              }
            },
            EMSS ={
-             # if(!LOADED_Order_module_SIMUServer.R)
-             # {
              source("C:/Users/linus/Documents/Project/6.APITols/Order_module_SIMUServer.R")
-             # }
              SIMU.DATA.Server()
              rm(SIMU.DATA.Server)
+           },
+           DMSS ={
+             set.conf(name="DMSS", value ="", dataset =dataset.name)
+           },
+           DSPL ={
+             set.conf(name="DSPL", value ="", dataset =dataset.name)
            },
            EAS ={
              
@@ -358,28 +469,46 @@ repeat
            DCL ={
              while(TRUE)
              {
-               .price <- as.numeric(readline("Del Count Limited :"))
+               .price <- readline("Del Count Limited :")
                if(.price >0 || is.na(.price)){break}
              }
-             .path <-extra.data(name="del.count.limited", p.mode = "path")
-             append.to.file(data=.price
-                            , path=.path
-                            , m.append = FALSE)
+             set.conf(name="del.count.limited", value =.price, dataset =dataset.name)
+             
+             # .path <-extra.data(name="del.count.limited", p.mode = "path")
+             # append.to.file(data=.price
+             #                , path=.path
+             #                , m.append = FALSE)
            },
            SPUT ={
-             Price.reachLIMITED.times.Limited <-as.numeric(readline("Quantity bundle :"))
+             Price.reachLIMITED.times.Limited <-as.numeric(readline("S&P Unbreaked time :"))
            },
            SMS ={
+             
+             #切換至卷商即時盤中價位資料路徑或虛擬資料伺服器
              switch.DATA.Source <-TF.Switch(switch.DATA.Source)
              data.path.tmp <- data.source.switch(switch.DATA.Source)
-             if(file.exists(data.path.tmp))
+             
+             if(if.Valid.file(data.path.tmp))
              {
                data.path <- data.path.tmp
-               print(paste("[訊息] 資料源切換模式 :", switch.DATA.Source))
+               print(paste("[訊息] 資料源切換模式 :", switch.DATA.Source, data.path))
              }else{
-               switch.DATA.Source <- TF.Switch(switch.DATA.Source)
-               print(paste("[錯誤] 資料源不存在，目前模式 :", switch.DATA.Source))
-             }
+               
+               print(paste(MXFSIMU.SOURCE.UNAVILABLE, switch.DATA.Source, data.path))
+               
+               switch.DATA.Source <-FALSE
+               data.path <- data.source.switch(switch.DATA.Source)
+               print(paste(MXFSIMU.SOURCE.AUTO.SWITCH, switch.DATA.Source, data.path))
+               
+             } 
+             
+             set.conf(name="switch.DATA.Source"
+                      , value = switch.DATA.Source
+                      , dataset = dataset.name)
+             
+             m.action <- readline(COMMON.ANYKEY.TO.EXIST)
+             
+             
            },
            DT ={
              if(Daytrade =="0"){Daytrade <-"1"}
@@ -406,10 +535,11 @@ repeat
                .price <- as.numeric(readline("CUSTOM.CreateLONG.price :"))
                if(.price >0 || is.na(.price)){break}
              }
-             .path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="CUSTOM.CREATE.LONG", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            CCS ={
              while(TRUE)
@@ -417,108 +547,135 @@ repeat
                .price <- as.numeric(readline("CUSTOM.CreateSHORT.price :"))
                if(.price >0 || is.na(.price)){break}
              }
-             .path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="CUSTOM.CREATE.SHORT", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            
            BMA5 ={
-             .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
              .price <- extra.data(name="MA5")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="MA5.CREATE.LONG", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
+             # .price <- extra.data(name="MA5")
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            BMA5_ ={
-             .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
              .price <- 5
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="MA5.CREATE.LONG", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="MA5.CREATE.LONG", p.mode = "path")
+             # .price <- 5
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            BMA10 ={
-             .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
              .price <- extra.data(name="MA10")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="MA10.CREATE.LONG", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
+             # .price <- extra.data(name="MA10")
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            BMA10_ ={
-             .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
              .price <- 10
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="MA10.CREATE.LONG", value =.price, dataset =dataset.name)
+             # .path <-extra.data(name="MA10.CREATE.LONG", p.mode = "path")
+             # .price <- 10
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            BMA20 ={
-             .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+             # .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
              .price <- extra.data(name="MA20")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             set.conf(name="MA20.CREATE.LONG", value =.price, dataset =dataset.name)
+             
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
            },
            
            BMA20_ ={
-             .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
+             # .path <-extra.data(name="MA20.CREATE.LONG", p.mode = "path")
              .price <- 20
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA20.CREATE.LONG", value =.price, dataset =dataset.name)
+             
            },
            SMA5 ={
-             .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
              .price <- extra.data(name="MA5")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA5.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
            SMA5_ ={
-             .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA5.CREATE.SHORT", p.mode = "path")
              .price <- 5
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA5.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
            SMA10 ={
-             .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
              .price <- extra.data(name="MA10")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA10.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
            SMA10_ ={
-             .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA10.CREATE.SHORT", p.mode = "path")
              .price <- 10
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA10.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
            SMA20 ={
-             .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
              .price <- extra.data(name="MA20")
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA20.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
            
            SMA20_ ={
-             .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
+             # .path <-extra.data(name="MA20.CREATE.SHORT", p.mode = "path")
              .price <- 20
-             unlink(.path)
-             append.to.file(data=.price
-                            , path=.path)
+             # unlink(.path)
+             # append.to.file(data=.price
+             #                , path=.path)
+             set.conf(name="MA20.CREATE.SHORT", value =.price, dataset =dataset.name)
+             
            },
-           DMSU ={
-             file.create(DMSS.path)
-           },
+           
            DAGS ={
-             file.create(DAGS.path)
+             set.conf(name="DAGS", value ="", dataset =dataset.name)
+             
+             # file.create(DAGS.path)
              beep(sound = 2)
              
            },
            RAGS ={
-             file.create(RAGS.path)
+             set.conf(name="RESET_AGENT.SERVERE", value ="", dataset =dataset.name)
+             
+             # file.create(RAGS.path)
              beep(sound = 2)
              
            },
@@ -529,9 +686,11 @@ repeat
                if(result ==0 ||result ==5 || result ==10)
                {
                  switch.stopPORT <-result
-                 .path <-extra.data(name="switch_to.ma", p.mode = "path")
-                 append.to.file(data=switch.stopPORT
-                                , path=.path)
+                 # .path <-extra.data(name="switch_to.ma", p.mode = "path")
+                 # append.to.file(data=switch.stopPORT
+                 #                , path=.path)
+                 set.conf(name="switch_to.ma", value =switch.stopPORT, dataset =dataset.name)
+                 
                  break
                }else{print("Wrong Param.MA(0/5/10)")}                     
              }
@@ -546,9 +705,11 @@ repeat
                if(result >25 && result <45)
                {
                  switch.stopPORT.RSI <-result
-                 .path <-extra.data(name="switch_to.rsi", p.mode = "path")
-                 append.to.file(data=switch.stopPORT.RSI
-                                , path=.path)
+                 # .path <-extra.data(name="switch_to.rsi", p.mode = "path")
+                 # append.to.file(data=switch.stopPORT.RSI
+                 #                , path=.path)
+                 set.conf(name="switch_to.rsi", value =switch.stopPORT.RSI, dataset =dataset.name)
+                 
                  break
                }else{print("Wrong Param.(20<X<=45)")}                     
              }

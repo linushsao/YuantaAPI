@@ -1,3 +1,58 @@
+#
+#
+#
+PT.data.reset <-function(mode="reg")
+{
+  if(mode =="reg")
+  {
+    #
+    rm.conf(name = "close.ALLPOSITION", dataset = dataset.name)
+    rm.conf(name = "RESET_AGENT.SERVERE", dataset = dataset.name)
+    
+    rm.conf(name = "price.Buyin", dataset = dataset.name)
+    rm.conf(name = "price.PCL", dataset = dataset.name)
+    rm.conf(name = "OrderNO", dataset = dataset.name)
+    rm.conf(name = "create.positionLONG", dataset = dataset.name)
+    rm.conf(name = "create.positionSHORT", dataset = dataset.name)
+    #
+    rm.conf(name = "switch.create.positionLONG", dataset = dataset.name)
+    rm.conf(name = "switch.create.positionSHORT", dataset = dataset.name) 
+    
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+
+}
+
+
+multi.source.load <-function(.path, .pattern =".R")
+{
+  
+  if(dir.exists(.path))
+  {
+    list.source <-list.files(path = .path, pattern = .pattern)
+    len <-length(list.source)
+    
+    if(len !=0)
+    {
+      for(.index in 1:len)
+      {
+        file.name <- paste0(.path, "/", list.source[.index])
+        file.name <- gsub("//", "/", file.name)
+        source(file.name)
+      }
+      
+      return(TRUE)
+        
+    }
+    
+    return(FALSE)
+    
+  }
+  
+}
+
 multi.file.remove <-function(.path, .pattern=NULL, .tail_keep=0)
 {
   
@@ -62,20 +117,39 @@ info2PCL <- function(x)
   return(.res)
 }
 
+#是否為有效檔案
+if.Valid.file <-function(path)
+{
+  file.size <-file.info(path)$size
+  
+  if( file.exists(path) & 
+      file.size !=0 &
+      !is.na(file.size) )
+  {
+    return(TRUE)
+  }else{return(FALSE)}
+}
 
 #### 最新報價 ####
 Price.current<-function(data.path=NULL)
 {
+  m.data.path <-c()
   #檢查路徑
   if(is.null(data.path))
   {
-    m.data.path <-SECURTIES.data.path
+    m.data.path <-data.source.switch(get.conf(name="switch.DATA.Source"
+                                              , dataset = dataset.name))
   }else{m.data.path <-data.path}
-  
-  if(file.exists(m.data.path))
+
+  # if(if.Valid.file(m.data.path))
+  while(TRUE)
   {
-    result <- QueryOHCL(data.path = m.data.path)
-  }else{result <-0}
+    if(file.access(m.data.path, mode=2) ==0) #for write permission success
+    {
+      result <- QueryOHCL(data.path = m.data.path)
+      break
+    }
+  }
   
   return(result)
   
@@ -139,6 +213,7 @@ finacial.dataparg.gen <- function(data.path, date.format, Product, Product.file)
 data.source.switch <-function(x)
 {
   .soource <- ifelse(x, SECURTIES.data.path, MXFSIMU.forSERVER.filename)
+  
   return(.soource)
 }
 
@@ -213,29 +288,39 @@ portfolio.monitor <-function()
   #檢查是否有未平倉
   .OnOpen <-QueryOnOpen()
   .check.NO.OnOpen <-length(.OnOpen)
+
+  #查詢權益數
+  .get.QueryRIGHT <-QueryRight()  
   
+  #產生結果向量
+  result <-c(rep(0,1,6))
+  #c(.bors, .price, .amount, .pcl, .portfolio, .portfolio.right)
+  
+  #尚有未平倉部位
   if(.check.NO.OnOpen !=0)
   {
-    #尚有未平倉部位
+
     #取出<未沖銷期貨浮動損益>數字
     .decode <- strsplit(.OnOpen, ",")[[1]]
     .leng <- as.numeric(length(.decode))
     
-    .bors <-.decode[.leng-2]
-    .price <-.decode[.leng-1]
-    .amount <-.decode[.leng]
-    .portfolio <-as.numeric(QueryRight()[[6]][1])
+    result[1] <-.decode[.leng-2]
+    result[2] <-.decode[.leng-1]
+    result[3] <-.decode[.leng]
     
+    .bors <-result[1]
     if(.bors =="多")
-    {.pcl =1
+    {result[4] =1
     }else if(.bors =="空")
-    {.pcl =-1
-    }else{.pcl=0}
-    
-    return(c(.bors, .price, .amount, .pcl, .portfolio))
-  }else{
-    return(c(0, 0, 0, 0, 0))
+    {result[4] =-1
+    }else{
+      result[4]=0}
   }
+  
+    result[5] <-as.numeric(.get.QueryRIGHT[[6]][1]) #未沖銷期貨浮動損益
+    result[6] <-as.numeric(.get.QueryRIGHT[[3]][1]) #可動用保證金
+  
+  return(result)
 }
 
 #執行交易並回傳交易序號
@@ -249,12 +334,22 @@ PTrading.MGR <-function(.BorS, .Price, .Qty, .Daytrade, .simu)
   
   transaction <- c()
   
-  if(!.simu)
+  if(!switch.DATA.Source)
+  {
+    OrderNO <- CODE.MXFSIMU
+  }else if(!.simu)
   {
     OrderNO <- Place.OrderLMT(BorS, Price, Qty, Daytrade)
   }else{
     OrderNO <- CODE.SIMU
   }
+  
+  #匯出交易序號
+  set.conf(name="OrderNO", value =OrderNO, dataset =dataset.name)
+  # append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
+  #匯出交易PCL
+  set.conf(name="price.PCL", value =BorS2PCL(BorS), dataset =dataset.name)
+  # append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
   
   return(OrderNO)
   
@@ -296,6 +391,7 @@ PTrading.confirm <-function(.OrderNO=NULL, .times=NULL)
   
 }
 
+
 # #交易成功後執行後續設定
 # PTConf.export <-function(transaction)
 # {
@@ -331,6 +427,7 @@ PTrading.confirm <-function(.OrderNO=NULL, .times=NULL)
 # }
 
 
+
 #[1] "2021102500139494T0EO,全部成交,MXFK1,限賣,16900,1,114317,226,3414338,,7D930,,,,,1,0 "
 
 account.info <- function(code=NULL, by.name=NULL, info)
@@ -357,7 +454,8 @@ account.info <- function(code=NULL, by.name=NULL, info)
       }        
     }
     
-    if(code !=CODE.SIMU)
+    if(code !=CODE.SIMU &
+       code !=CODE.MXFSIMU)
     {
       .info <-  QueryOrder(code)
       
@@ -409,9 +507,9 @@ account.info <- function(code=NULL, by.name=NULL, info)
     }else{ #模擬交易回應
       result <- c(rep(NULL, leng))
       result[1] <-code
-      result[2] <-ANSWER.ALLDeal
+      result[2] <-CONNECTED.ANSWER.BorS.ALLDeal
       result[5] <-Price.current()
-      result[8] <-FALSE
+      result[8] <-TRUE
       names(result) <- transaction.name
       
       return(result)
@@ -444,10 +542,9 @@ account.info <- function(code=NULL, by.name=NULL, info)
 }
 
 #卷商主機連線測試
-connect.test <-function(x=NULL)
+connect.test <-function(x=6)
 {
   #設定最多檢查次數
-  if(is.null(x)){x <-6}
   if.connected <-FALSE
   #測試連線結果
   for(miu in 1:x)
@@ -461,6 +558,7 @@ connect.test <-function(x=NULL)
   }
   return(if.connected)
 }
+
 #
 trans.lang <-function(mode, param)
 {
@@ -470,15 +568,39 @@ trans.lang <-function(mode, param)
             {
               return("模擬")
             }else{return("真實")}
+          },
+          SECURTIES ={
+            if(param)
+            {
+              return("卷商")
+            }else{return("模擬卷商")}
+          },
+          stop.Portfolio.MODE ={
+            if(param =="1"){return("RSI熱區平倉")}
+            if(param =="2"){return("MA回檔平倉")}
+          }
+          AUTO.STOPLOSS ={
+            if(param) {return("主動停損開啟")}
+            if(!param){return("主動停損關閉")}
           }
           
   )
 }
-# 
-m.tail <-function(path, .tail.num=1)
+
+AUTO.STOPLOSS
+m.tail <-function(path, .tail.num=1, .header = FALSE)
 {
-  price.file <- read.csv(path, header = FALSE, fileEncoding = "big5")
+  price.file <- read.csv(path, header = .header, fileEncoding = "big5")
   price.tail <- tail(price.file, .tail.num)
   return(price.tail)
+}
+
+menu_0 <-function()
+{
+  print(paste0("[1] RSI      stopPORTFOLIO"))
+  print(paste0("[2] MA Cross stopPORTFOLIO"))
+  print(paste0("[S] SIMULATION SWITCH      :",simu))
+  
+  print("")
 }
 

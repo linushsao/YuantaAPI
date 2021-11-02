@@ -9,6 +9,7 @@ Daytrade <-"1" #設定當沖(否1是0)
 transaction.checkTIMES <-5 #檢查交易結果次數
 simu <-TRUE
 CODE.SIMU <- "SIMU"
+CODE.MXFSIMU <- "MXFSIMU"
 
 transaction <-NULL #交易結果訊息向量
 transaction.name <-c("OrderNO", "Status", "Product", "BorS", "Price"
@@ -19,6 +20,10 @@ transaction.name <-c("OrderNO", "Status", "Product", "BorS", "Price"
 ANSWER.POSITION.AFTER.CONNECT <-8
 LENGTH.COLLECT.ANSWER <-17
 
+#COMMON INFO
+COMMON.ANYKEY.TO.EXIST <- "press any key pls..."
+
+#ANSWER INFO
 CONNECTED.ANSWER.BorS.WrongPARAM <- "Delete KeyNo"
 CONNECTED.ANSWER.RightPARAM.NoDATA <-"Nodata"
 
@@ -30,17 +35,27 @@ UNCONNECTED.ANSWER.RightPARAM <- "請開啟Smart API"
 
 COMMON.ANSWER.EmptyPARAM <- "KeyNo or ALL"
 
+#MXFSIMU
 MXFSIMU.Name <- "MXFSIMU"
 MXFSIMU.file <- filename.gen(name=MXFSIMU.Name)
 MXFSIMU.data.path <- paste0(msg.path, "/", MXFSIMU.Name, "/_Match.txt")
 MXFSIMU.forSERVER.filename <- paste0(msg.path, filename.gen(x="log"))
 
+##MXFSIMU ERROR INFO
+MXFSIMU.SOURCE.UNAVILABLE<-paste0("[錯誤] 虛擬資料伺服器 :", "原始卷商資料源路徑錯誤或檔案空白")
+MXFSIMU.SOURCE.AUTO.SWITCH  <-paste0("[設定] 虛擬資料伺服器 :", "自動切換至虛擬卷商")
+MXFSIMU.SOURCE.REDIFINE  <-paste0("[錯誤] 虛擬資料伺服器 :", "從最近日期回頭尋找可替代之卷商資料源")
 
-switch.stopPORT <-5 #MA5出場
-switch.stopPORT_RSI <-40 #RSI30出場
-.path <-extra.data(name="switch_to.ma", p.mode = "path")
-append.to.file(data=switch.stopPORT
-               , path=.path)
+#
+switch.stopPORT <-ifelse(
+            is.null(get.conf(name="switch_to.ma", dataset = dataset.name))
+            , 5
+            ,get.conf(name="switch_to.ma", dataset = dataset.name))#MA5出場
+  
+switch.stopPORT_RSI <-ifelse(
+            is.null(get.conf(name="switch_to.rsi", dataset = dataset.name))
+            , 40
+            ,get.conf(name="switch_to.rsi", dataset = dataset.name))#RSI出場
 
 DateFolder <- ""
 result <- "  "
@@ -79,74 +94,52 @@ date.format <- gsub("-", "", get.sysDate)
 Product.file <- filename.gen(name=date.format)
 SECURTIES.data.path <-finacial.dataparg.gen(realdata.path, date.format, Product, Product.file)
 
-#設定預設資料源<證卷商>
-switch.DATA.Source <-TRUE #T表示證卷商
-# data.path <- data.source.switch(switch.DATA.Source)
-data.path <- SECURTIES.data.path
+#設定預設資料源<證卷商>T表示證卷商
+switch.DATA.Source <-ifelse(
+                    is.null(get.conf(name="switch.DATA.Source", dataset = dataset.name))
+                    , TRUE
+                    , as.logical(get.conf(name="switch.DATA.Source", dataset = dataset.name))) 
+data.path <- data.source.switch(switch.DATA.Source)
 
-enable.STABLE.Stop.PORT.path  <- extra.data(name="enable.STABLE.Stop.PORT", p.mode = "path") #default固定停利
-enable.onlyMDD.path  <- extra.data(name="enable.onlyMDD", p.mode = "path") #MDD停利
-enable.RSI.TrendADDED.path  <- extra.data(name="enable.RSI.TrendADDED", p.mode = "path") #RSI超買超賣停利
-enable.Bolling.path  <- extra.data(name="enable.BollingPATH.ADDED", p.mode = "path") #布林通道停利
-DMSS.path  <- extra.data(name="DMSS", p.mode = "path") #停止虛擬資料伺服器
-DAGS.path  <- extra.data(name="DAGS", p.mode = "path") #停止代理人伺服器
-RAGS.path  <- extra.data(name="RESET_AGENT.SERVERE", p.mode = "path") #重設代理人伺服器
-RSS.path   <- extra.data(name="REMOTE_SWITCH_SIMULATION", p.mode = "path") #遙控切換模擬/真實
-EPM.path   <- extra.data(name="REMOTE_SWITCH_PORTFOLIO.MONITOR", p.mode = "path") #遙控切換<未沖銷期貨浮動損益>訊息視窗
+REMOTE.SWITCH.SIMULATION <-simu
 
-shortcut.key <-function()
-{
-  print("(QR)QueryRight")
-  print("(CP)ChangePRodid")
-  print("(QA)QueryAllOrder")
-  print("(QO)QueryOnOpen")
-  print("(QU)QueryUnfinished")
-  print("(OL)Place.OrderLMT")
-  print("(OM)Place.OrderMKT")
-  print("(PR)oduct bundle")
-  print("(P)rice bundle")
-  print("(Q)uantity bundle")
-  print("(BS)Buy|Sell bundle")
-  print("(SPT)StopPORT.TYPE")
-  print("(SLT)StopLOSS.TYPE")
-  print("(DT)_switch_DayTRADE")  
-  print("(PRB)Price.buyin")
-  print("(PCL)PCL")
-  print("")
+meta.record.name <-c(
+  "date"
+  , "time"
+  , "barInterval"
+  , "open"
+  , "high"
+  , "low"
+  , "close"
+  , "currentBar"
   
-  # print("(EDPC)enable.default.P.CHECK") 
-  # print("(ESSP)enable.stable.S.P.")
-  print("")
+  , "ma5"
+  , "ma10"
+  , "ma20"
   
-  print("(EAS)ENABLE_AGENT.SERVERE") 
-  print("(DAGS)DISABLE_AGENT.SERVERE") 
-  print("(RAGS)RESET_AGENT.SERVERE") 
-  print("(RSS)REMOTE.SWITCH.SIMU_AGENT.SERVERE") 
-  print("")
+  , "RL.Upper"
+  , "RL.Mid"
+  , "RL.lower"
+  , "EL.Upper"
+  , "EL.Mid"
+  , "EL.lower"
+  , "b.upper"
+  , "b.lower"
+  , "RSI"
+  , "BSRate"
+  
+  , "north.star"
+  , "south.star"
+  , "NS.price"
+  , "NS.stopLoss"
+  , "SS.price"
+  , "SS.stopLoss"
+  , "OMA.L20.10"
+  , "OMA.S20.10"
+  , "OMA.L20.5"
+  , "OMA.S20.5"
+)
 
-  print("(EPM)ENABLE_PORTFOLIO.MINITOR") 
-  print("")
-  
-  print("(EMSS)ENABLE_MXFSIMU.SERVERE") 
-  print("(DMSU)DISABLE_MXFSIMU.SERVERE") 
-  print("")
-  
-  print("(SSPM)SWITCH StopPORT.MA")
-  print("(SSPR)SWITCH StopPORT.RSI")
-  print("")
-  
-  print("(SMS)SWITCH MFXSource")
-  print("(SPUT)S&P Unbreaked times")
-  print("(APC)switch_Auto.pos.CLOSE")
-  print("(SDP)switch_defaultPORT") 
-  print("(SDP)switch_defaultPORT")
-  print("(SS)switch_Simulation") 
-  print("(RSS)REMOTE switch_Simulation")
-  print("(EPPT)EXPORT PTConf")
-  print("")
-  
-  
-  
-  action <- readline("PRESS ANY KEY PLS... :")
-  
-}
+meta.leng <-length(meta.record.name)
+meta.No <-c(1:meta.leng)
+names(meta.No) <-meta.record.name

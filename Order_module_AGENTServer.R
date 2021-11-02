@@ -2,9 +2,9 @@
 Position.AGENT<-function()
 {
   
-  del.count <-0
-  del.count.limited <-100
+  Price.curr.PRE <-0
   create.price <-0
+  create.price.dyn <-0
   Price.buyin.PRE <-0
   Price.PCL <-0
   MatchBUFFER <-15
@@ -19,7 +19,6 @@ Position.AGENT<-function()
   .stopPORT.price.LONG <- 0
   .stopPORT.price.SHORT <-0
   alarm.msg <-NULL
-  # Price.curr.PRE <-0
   Price.culster.limited <- c(rep(0, 15))
   switch.create.positionLONG  <-FALSE
   switch.create.positionSHORT <-FALSE
@@ -32,52 +31,45 @@ Position.AGENT<-function()
   CROSS.Stop.PORT.LINE <-0
   stop.PORT.MAPrice <-0
   stop.PORT.RSIPrice <-0
-
-    extremes_Line_Upper <- 0
+  
+  extremes_Line_Upper <- 0
   extremes_Line_lower <- 0
   Bolling_Line_upper <- 0
   Bolling_Line_lower <- 0
   price.rsi <-0
   
-  path.create.positionLONG  <- extra.data(name="create.positionLONG", p.mode = "path")
-  path.create.positionSHORT <- extra.data(name="create.positionSHORT", p.mode = "path")
-  path.closeALLPosition     <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-  path.price.Buyin     <- extra.data(name="price.Buyin", p.mode = "path")
-  path.price.PCL     <- extra.data(name="price.PCL", p.mode = "path")
-  path.OrderNO <-extra.data(name="OrderNO", p.mode = "path")
-  path.del.count.limited <- extra.data(name="del.count.limited", p.mode = "path")
-    
-  path.MA5.CREATE.LONG <- extra.data(name="MA5.CREATE.LONG", p.mode = "path") 
-  path.MA10.CREATE.LONG <- extra.data(name="MA10.CREATE.LONG", p.mode = "path") 
-  path.MA20.CREATE.LONG <- extra.data(name="MA20.CREATE.LONG", p.mode = "path") 
-  path.MA5.CREATE.SHORT <- extra.data(name="MA5.CREATE.SHORT", p.mode = "path") 
-  path.MA10.CREATE.SHORT <- extra.data(name="MA10.CREATE.SHORT", p.mode = "path") 
-  path.MA20.CREATE.SHORT <- extra.data(name="MA20.CREATE.SHORT", p.mode = "path") 
-  path.switch_to.ma <- extra.data(name="switch_to.ma", p.mode = "path") 
-  path.switch_to.rsi <- extra.data(name="switch_to.rsi", p.mode = "path") 
-  path.msg.lite <- extra.data(name="msg.lite", p.mode = "path") 
-  path.CLOSEPositionByMA <- extra.data(name="CLOSEPositionByMA", p.mode = "path") 
+  rm.conf(name = "close.ALLPOSITION")
   
-  unlink(path.closeALLPosition)
-  unlink(path.price.Buyin)
-  unlink(path.price.PCL)
-  unlink(path.OrderNO)
-  unlink(path.create.positionLONG)
-  unlink(path.create.positionSHORT)
-  unlink(RAGS.path)
+  rm.conf(name = "price.Buyin")
+  rm.conf(name = "price.PCL")
+  rm.conf(name = "OrderNO")
+  
+  rm.conf(name = "create.positionLONG")
+  rm.conf(name = "create.positionSHORT")
+  rm.conf(name = "RESET_AGENT.SERVERE")
+  
+  meta.path <- paste0(price.path, "meta_record.csv")
   
   INIT.ENABLE <-FALSE
   
+  ##
+  
+  ##  
   repeat
   {
     action <-NULL
+    #TRUE真實卷商 FALSE模擬卷商
+    if.MXFSIMU <- get.conf(name="switch.DATA.Source", dataset = dataset.name)
+    
     while(TRUE)
     {
       #產生MENU
       print(paste0("MatchBUFFER        : ", MatchBUFFER)) 
       print(paste0("switch.stopPORT    : ", switch.stopPORT))  
       print(paste0("switch.stopPORT_RSI: ", switch.stopPORT_RSI))  
-      
+      print(paste0("MODE.XFSource      : ", trans.lang(mode="SECURTIES"
+                                                       , if.MXFSIMU)))  
+      print(paste0("PATH.XFSource      : ", data.source.switch(if.MXFSIMU))) 
       print(paste0("Simulation         : ", simu))       
       # 
       print(" ")
@@ -97,30 +89,37 @@ Position.AGENT<-function()
     while(TRUE)
     {
       #檢查停止
-      if(file.exists(DAGS.path))
+      if(!is.null(get.conf(name="DAGS", dataset = dataset.name)))
       {
-        unlink(DAGS.path)
+        rm.conf(name="DAGS", dataset = dataset.name)
         break
       }
       
+      meta.record <- m.tail(meta.path)
+      names(meta.record) <-meta.record.name
+      
       #目前價位
       Price.curr <- as.numeric(Price.current())
-      Price.open <- extra.data(name="OP")
-      Price.high <- extra.data(name="HI")
-      Price.low <- extra.data(name="LO")
-
-      price.ma5 <- as.numeric(extra.data(name="MA5"))
-      price.ma10 <- as.numeric(extra.data(name="MA10"))
-      price.ma20 <- as.numeric(extra.data(name="MA20"))
-      price.rsi <- as.numeric(extra.data(name="RSI"))
-      #
-      extremes_Line_Upper <- as.numeric(extra.data(name="extremes_Line_Upper"))
-      extremes_Line_lower <- as.numeric(extra.data(name="extremes_Line_lower"))
-      Bolling_Line_upper <- as.numeric(extra.data(name="B_UP"))
-      Bolling_Line_lower <- as.numeric(extra.data(name="B_LO"))
       
-      currentbar.num <- as.numeric(extra.data(name="currentBar")) 
-
+      # if(if.MXFSIMU)
+      # {
+      Price.open <- as.numeric(meta.record$open)
+      Price.high <- as.numeric(meta.record$high)
+      Price.low <- as.numeric(meta.record$low)
+      price.ma5 <- as.numeric(meta.record$ma5)
+      price.ma10 <- as.numeric(meta.record$ma10)
+      price.ma20 <- as.numeric(meta.record$ma20)
+      price.rsi <- as.numeric(meta.record$RSI)
+      #
+      extremes_Line_Upper <- as.numeric(meta.record$EL.Upper)
+      extremes_Line_lower <- as.numeric(meta.record$EL.lower)
+      Bolling_Line_upper <- as.numeric(meta.record$b.upper)
+      Bolling_Line_lower <- as.numeric(meta.record$b.lower)
+      
+      currentbar.num <- as.numeric(meta.record$currentBar)        
+      # }
+      
+      
       if(extremes_Line_lower >Bolling_Line_lower)
       {
         .stopLOSS.price.LONG <- (extremes_Line_lower +Bolling_Line_lower)*0.5
@@ -136,53 +135,113 @@ Position.AGENT<-function()
       .stopPORT.price.SHORT <- min(c(extremes_Line_lower, Bolling_Line_lower))  
       
       #計算價格變動
-      if(file.exists(path.price.Buyin)) {Price.buyin.PRE <- as.numeric(extra.data(name="price.Buyin"))}
-      if(file.exists(path.price.PCL)) {Price.PCL <- as.numeric(extra.data(name="price.PCL"))}
-      
+      Price.buyin.PRE <- as.numeric( ifelse(!is.null(get.conf(name = "price.Buyin", dataset = dataset.name))
+                                            , get.conf(name = "price.Buyin", dataset = dataset.name)
+                                            , 0) )
+      Price.PCL <- as.numeric( ifelse(!is.null(get.conf(name = "price.PCL", dataset = dataset.name))
+                                      , get.conf(name = "price.PCL", dataset = dataset.name)
+                                      , 0) )      
       Price.diff <- Price.curr -Price.buyin.PRE
       
       #艦橋指令讀取
       ##已全平倉 
-      if(file.exists(path.closeALLPosition) || #緊急平倉
-         file.exists(RAGS.path) || 
+      if(!is.null(get.conf(name = "close.ALLPOSITION", dataset = dataset.name)) || #緊急平倉
+         !is.null(get.conf(name = "RESET_AGENT.SERVERE", dataset = dataset.name)) || #AGS重啟動
          !INIT.ENABLE)
       {
         
-        unlink(path.closeALLPosition)
-        unlink(path.price.Buyin)
-        unlink(path.price.PCL)
-        unlink(path.OrderNO)
-        unlink(path.create.positionLONG)
-        unlink(path.create.positionSHORT)
-        unlink(RAGS.path)
+        m_msg("[設定] 回復系統預設值...")
+        PT.data.reset()
+        # rm.conf(name = "close.ALLPOSITION", dataset = dataset.name)
+        # rm.conf(name = "RESET_AGENT.SERVERE", dataset = dataset.name)
+        # 
+        # rm.conf(name = "price.Buyin", dataset = dataset.name)
+        # rm.conf(name = "price.PCL", dataset = dataset.name)
+        # rm.conf(name = "OrderNO", dataset = dataset.name)
+        # rm.conf(name = "create.positionLONG", dataset = dataset.name)
+        # rm.conf(name = "create.positionSHORT", dataset = dataset.name)
+        
+        #
         alarm.msg <-NULL
-        switch.create.positionLONG =FALSE
-        switch.create.positionSHORT =FALSE
+        switch.create.positionLONG <-FALSE
+        switch.create.positionSHORT <-FALSE
         ENABLE.ByMA <-FALSE
         create.price <-0
-        # create.price.dynamic <-0
         INIT.ENABLE <-TRUE
+        Price.buyin.PRE <-0
+        Price.PCL <-0
+        
+        m_msg(paste0("[設定] env.close.ALLPOSITION "
+                     , get.conf(name = "close.ALLPOSITION", dataset = dataset.name)))
+        m_msg(paste0("[設定] env.RESET_AGENT.SERVERE "
+                     , get.conf(name = "RESET_AGENT.SERVERE", dataset = dataset.name)))
+        m_msg(paste0("[設定] switch.create.positionLONG "
+                     ,switch.create.positionLONG))
+        m_msg(paste0("[設定] switch.create.positionSHORT "
+                     , switch.create.positionSHORT))
+        m_msg(paste0("[設定] INIT.ENABLE "
+                     , INIT.ENABLE))
+      }
+      
+      ## 手動遙控切換<switch.create.positionLONG, switch.create.positionSHORT> switch
+      m.switch <-c("switch.create.positionLONG", "switch.create.positionSHORT")
+      miu <-0
+      
+      for(miu in 1:length(m.switch))
+      {
+        m.conf <-get.conf(name = m.switch[miu], dataset = dataset.name)
+        if(!is.null(m.conf))
+        {
+          m.check <-as.logical(m.conf)
+          if(!is.null(m.check))
+          {
+            if(m.check)
+            {
+              
+              if(m.switch[miu] == "switch.create.positionLONG") 
+              {
+                switch.create.positionLONG <-TRUE
+                m_msg(paste("[設定] 手動設定建倉資料", "switch.create.positionLONG", switch.create.positionLONG))
+              }
+              if(m.switch[miu] == "switch.create.positionSHORT")
+              {
+                switch.create.positionSHORT <-TRUE
+                m_msg(paste("[設定] 手動設定建倉資料", "switch.create.positionSHORT", switch.create.positionSHORT))
+              }
+              
+              Price.buyin.PRE <-get.conf(name="price.Buyin", dataset =dataset.name)
+              Price.PCL <-get.conf(name="price.PCL", dataset =dataset.name)
+              
+              m_msg(paste("[設定] 手動設定建倉資料", "Price.buyin.PRE", Price.buyin.PRE))
+              m_msg(paste("[設定] 手動設定建倉資料", "Price.PCL", Price.PCL))
+              
+            } 
+            rm.conf(name = m.switch[miu], dataset = dataset.name)
+          }
+          
+          
+        }
         
       }
       
       ##確認交易結果
       ##檔案price.Buyin不存在而price.PCL存在，表示執行建倉但未確認結果
-      # m_msg(paste("[", alarm.msg, Price.PCL, "]", ifelse(Price.buyin.PRE ==0, 0, Price.diff)
-      #             , Price.buyin.PRE, ">>", Price.curr
-      if(!file.exists(path.price.Buyin) &&
-         file.exists(path.price.PCL))
+      
+      if(is.null(get.conf(name = "price.Buyin", dataset = dataset.name)) &
+         !is.null(get.conf(name = "price.PCL", dataset = dataset.name)))
       {
+        m_msg("MAR 2")
+        
         m_msg(paste0("[訊息] 已執行建倉但未確認結果"))
         
-        # OnOpen.data <-portfolio.monitor()
-        OnOpen.OrderNO <-extra.data(name="OrderNO")
+        OnOpen.OrderNO <-get.conf(name = "OrderNO", dataset = dataset.name)
         
         if(OnOpen.OrderNO == CODE.SIMU)
         {
           m_msg(paste0("交易序號回傳 :", OnOpen.OrderNO
-                       , "，交易結果 :", OnOpen.OrderNO))          
-        }
-        if(length(OnOpen.OrderNO) !=0)
+                       , "，交易結果 :", OnOpen.OrderNO)) 
+          
+        }else if(length(OnOpen.OrderNO) !=0)
         {
           
           #依下單回傳序號解碼成文字向量，並確認交易結果
@@ -196,36 +255,35 @@ Position.AGENT<-function()
             append.to.file(data = transaction, path = extra.data(name = "transaction", p.mode = "path"), m.append = FALSE)
             #交易成功則執行後續設定
             if(.checkRESULT)
-            {
+            {###
               m_msg(paste0("[訊息] 交易成功，執行後續設定"))
               
-              .price.path <- extra.data(name="price.Buyin", p.mode = "path")
-              .PCL.path <- extra.data(name="price.PCL", p.mode = "path")
-              #Price.buyin
-              append.to.file(data= transaction[5]
-                             , path=.price.path, m.append = FALSE)
-              #PCL
-              append.to.file(data=BorS2PCL(x=transaction[4], .mode="zh") 
-                             , path=.PCL.path, m.append = FALSE)
               
-              OnOpen.bors <-account.info(by.name = "bors", info = transaction)
+              OnOpen.pcl  <- BorS2PCL(x=account.info(by.name = "bors", info = transaction), .mode="zh")
               OnOpen.price <- as.numeric(account.info(by.name = "price", info = transaction))
-              switch (OnOpen.bors,
-                      B = {
-                        create.price <- OnOpen.price
+              #匯出交易價位
+              set.conf(name="price.Buyin", value =OnOpen.price, dataset =dataset.name)
+              #匯出交易PCL
+              set.conf(name="price.PCL", value =OnOpen.pcl, dataset =dataset.name)
+              
+              switch (as.character(OnOpen.pcl),
+                      #買進B
+                      "1" = {
+                        # create.price <- OnOpen.price
                         switch.create.positionLONG =TRUE
                         alarm.msg <- "CR.PL"
                       },
-                      S = {
-                        create.price <- OnOpen.price *-1
+                      #賣出S
+                      "-1" = {
+                        # create.price <- OnOpen.price *-1
                         switch.create.positionSHORT =TRUE
                         alarm.msg <- "CR.PL"
                       }
               )
-            }
+            }###
             
             m_msg(paste0("交易序號回傳 :", OnOpen.OrderNO
-                         , "，交易結果 :", transaction[2]))
+                         , "，交易結果 :", account.info(by.name = "status", info = transaction)))
             
           }else{
             m_msg(paste0("[錯誤] 交易結果有誤，序號回傳:", OnOpen.OrderNO))
@@ -236,20 +294,22 @@ Position.AGENT<-function()
       }
       
       ##均線停利點
-      if(file.exists(path.switch_to.ma))
+      if(!is.null(get.conf(name = "switch_to.ma", dataset = dataset.name)))
+        
       {
-        switch.stopPORT <-as.numeric(extra.data(name="switch_to.ma"))
-        unlink(path.switch_to.ma)   
+        switch.stopPORT <-as.numeric(get.conf(name = "switch_to.ma", dataset = dataset.name))
+        rm.conf(name = "switch_to.ma", dataset = dataset.name)
         
         beep(sound = 2)
         m_msg(paste("[設定] 均線停利點重設 :", switch.stopPORT))
         
       } 
       ##RSI停利點
-      if(file.exists(path.switch_to.rsi))
+      if(!is.null(get.conf(name = "switch_to.rsi", dataset = dataset.name)))
       {
-        switch.stopPORT_RSI <-as.numeric(extra.data(name="switch_to.rsi"))
-        unlink(path.switch_to.rsi)
+        switch.stopPORT_RSI <-as.numeric(get.conf(name = "switch_to.rsi", dataset = dataset.name))
+        # unlink(path.switch_to.rsi)
+        rm.conf(name = "switch_to.rsi", dataset = dataset.name)
         
         beep(sound = 2)
         m_msg(paste("[設定] RSI停利點重設 :", switch.stopPORT_RSI))
@@ -257,30 +317,29 @@ Position.AGENT<-function()
       }
       
       #msg.lite switch
-      if(file.exists(path.msg.lite))
+      if(!is.null(get.conf(name = "msg.lite", dataset = dataset.name)))
       {
-        msg.lite_ =as.logical(extra.data(name="msg.lite"))
-        unlink(path.msg.lite)
+        msg.lite_ =as.logical(get.conf(name = "msg.lite", dataset = dataset.name))
+        rm.conf(name = "msg.lite", dataset = dataset.name)
+        
+        m_msg(paste("[設定] 切換顯示訊息類型 :", msg.lite_))
         beep(sound = 2)
         
       }
       
-      #del.count.limited reset
-      if(file.exists(path.del.count.limited))
-      {
-        del.count.limited =as.numeric(extra.data(name="del.count.limited"))
-        unlink(path.del.count.limited)
-        m_msg(paste0("[設定] ˇ價格資料重製間隔 :", del.count.limited))
-        beep(sound = 2)
-        
-      } 
+      #計算價格變動
+      Price.buyin.PRE <- as.numeric( ifelse(!is.null(get.conf(name = "price.Buyin", dataset = dataset.name))
+                                            , get.conf(name = "price.Buyin", dataset = dataset.name)
+                                            , 0) )
+      Price.PCL <- as.numeric( ifelse(!is.null(get.conf(name = "price.PCL", dataset = dataset.name))
+                                      , get.conf(name = "price.PCL", dataset = dataset.name)
+                                      , 0) )
       
       ##自訂價位建倉
       ###[create.price價格]
-      CUSTOM.CREATE.LONG.path <-extra.data(name="CUSTOM.CREATE.LONG", p.mode = "path")
-      if(file.exists(CUSTOM.CREATE.LONG.path)) 
+      if(!is.null(get.conf(name = "CUSTOM.CREATE.LONG", dataset = dataset.name)))
       {
-        create.price <- as.numeric(extra.data(name="CUSTOM.CREATE.LONG"))
+        create.price <- as.numeric(get.conf(name = "CUSTOM.CREATE.LONG", dataset = dataset.name))
         if(create.price >0)
         {
           alarm.msg <- paste0("PC.PL.", create.price)
@@ -290,14 +349,13 @@ Position.AGENT<-function()
           m_msg(paste("[錯誤] 自訂價位有誤 :", create.price))
           create.price <-0
         }
-        unlink(CUSTOM.CREATE.LONG.path)
+        rm.conf(name = "CUSTOM.CREATE.LONG", dataset = dataset.name)
         
       }
       
-      CUSTOM.CREATE.SHORT.path <-extra.data(name="CUSTOM.CREATE.SHORT", p.mode = "path")
-      if(file.exists(CUSTOM.CREATE.SHORT.path)) 
+      if(!is.null(get.conf(name = "CUSTOM.CREATE.SHORT", dataset = dataset.name)))
       {
-        create.price <- as.numeric(extra.data(name="CUSTOM.CREATE.SHORT"))
+        create.price <- as.numeric(get.conf(name = "CUSTOM.CREATE.SHORT", dataset = dataset.name))
         if(create.price >0)
         {
           alarm.msg <- paste0("PC.PS.", create.price)
@@ -308,69 +366,84 @@ Position.AGENT<-function()
           m_msg(paste("[錯誤] 自訂價位有誤 :", create.price))
           create.price <-0
         }
-        unlink(CUSTOM.CREATE.SHORT.path)
+        
+        rm.conf(name = "CUSTOM.CREATE.SHORT", dataset = dataset.name)
         
       }
       
       ##均線服從建倉
       ###[create.price均線價格]
-      if(file.exists(path.MA5.CREATE.LONG)) 
+      if(!is.null(get.conf(name = "MA5.CREATE.LONG", dataset = dataset.name)))
       {
-        create.price <- as.numeric(extra.data(name="MA5.CREATE.LONG"))
-        unlink(path.MA5.CREATE.LONG)
+        create.price <- as.numeric(get.conf(name = "MA5.CREATE.LONG", dataset = dataset.name))
+        rm.conf(name = "MA5.CREATE.LONG", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.5PL.", create.price)
       }
-      if(file.exists(path.MA10.CREATE.LONG)) 
+      
+      if(!is.null(get.conf(name = "MA10.CREATE.LONG", dataset = dataset.name)))
+        
       {
-        create.price <- as.numeric(extra.data(name="MA10.CREATE.LONG"))
-        unlink(path.MA10.CREATE.LONG)
+        create.price <- as.numeric(get.conf(name = "MA10.CREATE.LONG", dataset = dataset.name))
+        rm.conf(name = "MA10.CREATE.LONG", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.10PL.", create.price)
         
       }
-      if(file.exists(path.MA20.CREATE.LONG)) 
+      if(!is.null(get.conf(name = "MA20.CREATE.LONG", dataset = dataset.name)))
       {
-        create.price <- as.numeric(extra.data(name="MA20.CREATE.LONG"))
-        unlink(path.MA20.CREATE.LONG)
+        create.price <- as.numeric(get.conf(name = "MA20.CREATE.LONG", dataset = dataset.name))
+        rm.conf(name = "MA20.CREATE.LONG", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.20PL.", create.price)
       }
-      if(file.exists(path.MA5.CREATE.SHORT)) 
+      if(!is.null(get.conf(name = "MA5.CREATE.SHORT", dataset = dataset.name)))
+        
       {
-        create.price <- as.numeric(extra.data(name="MA5.CREATE.SHORT")) *-1
-        unlink(path.MA5.CREATE.SHORT)
+        create.price <- as.numeric(get.conf(name = "MA5.CREATE.SHORT", dataset = dataset.name)) *-1
+        rm.conf(name = "MA5.CREATE.SHORT", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.-5PL.", create.price)
       }
-      if(file.exists(path.MA10.CREATE.SHORT)) 
+      
+      if(!is.null(get.conf(name = "MA10.CREATE.SHORT", dataset = dataset.name)))
+        
       {
-        create.price <- as.numeric(extra.data(name="MA10.CREATE.SHORT")) *-1
-        unlink(path.MA10.CREATE.SHORT)
+        create.price <- as.numeric(get.conf(name = "MA10.CREATE.SHORT", dataset = dataset.name)) *-1
+        rm.conf(name = "MA10.CREATE.SHORT", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.-10PL.", create.price)
       }
-      if(file.exists(path.MA20.CREATE.SHORT)) 
+      if(!is.null(get.conf(name = "MA20.CREATE.SHORT", dataset = dataset.name)))
       {
-        create.price <- as.numeric(extra.data(name="MA20.CREATE.SHORT")) *-1
-        unlink(path.MA20.CREATE.SHORT)
+        create.price <- as.numeric(get.conf(name = "MA20.CREATE.SHORT", dataset = dataset.name)) *-1
+        rm.conf(name = "MA20.CREATE.SHORT", dataset = dataset.name)
+        
         beep(sound = 2)
         
         alarm.msg <- paste0("PMAs.-20PL.", create.price)
       }
       
       #切換模擬/真實設定
-      if(file.exists(RSS.path)) 
+      m.REMOTE.SWITCH.SIMULATION <-get.conf(name = "REMOTE.SWITCH.SIMULATION", dataset = dataset.name)
+      if(!is.null(m.REMOTE.SWITCH.SIMULATION))
       {
-        unlink(RSS.path)
-        simu <-TF.Switch(simu)
-        m_msg(paste("[動作] 切換模擬/真實設定"))
-        beep(sound = 2)
+        if(as.logical(m.REMOTE.SWITCH.SIMULATION) !=simu)
+        {
+          simu <-TF.Switch(simu)
+          m_msg(paste("[設定] 切換模擬/真實設定"))
+          beep(sound = 2)        
+        }
         
       }    
       
@@ -390,14 +463,16 @@ Position.AGENT<-function()
         for(miu in 1:length(ma.all))
         {
           
-          if( abs(create.price) ==ma.all[miu])
+          if( abs(create.price) ==ma.all[miu] ||
+              abs(create.price.dyn) ==ma.all[miu] )
           {
+            if(create.price.dyn ==0){create.price.dyn ==ma.all[miu]}
+            
             if(ma.all[miu] ==5)
             {
               .sig <-p_n.sig(create.price)
               create.price <-price.ma5 *.sig
               alarm.msg <- paste0("PMA.",.sig, ".5PL.", create.price)
-              
             }
             if(ma.all[miu] ==10)
             {
@@ -447,10 +522,6 @@ Position.AGENT<-function()
                                    , .simu=simu)
             
             Sys.sleep(1)
-            #匯出交易序號
-            append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-            #匯出交易PCL
-            append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
             
             if(Auto.positionCLOSE)
             {
@@ -478,6 +549,8 @@ Position.AGENT<-function()
                   ENABLE.ByMA &&
                   !Finished.create.positionSHORT)
           {
+            
+            
             #建倉
             BorS <- "S"
             Price <- Price.current()
@@ -489,10 +562,7 @@ Position.AGENT<-function()
                                    , .simu=simu)
             
             Sys.sleep(1)
-            #匯出交易序號
-            append.to.file(data = OrderNO, path = extra.data(name = "OrderNO", p.mode = "path"), m.append = FALSE)             
-            #匯出交易PCL
-            append.to.file(data = BorS2PCL(BorS), path = extra.data(name = "price.PCL", p.mode = "path"), m.append = FALSE) 
+            
             if(Auto.positionCLOSE)
             {
               next.step <- "7"
@@ -502,7 +572,7 @@ Position.AGENT<-function()
           }
         }
       }
-
+      
       ##已建倉，檢查平倉條件
       if(switch.create.positionLONG && 
          Price.PCL ==for.LONG )
@@ -511,8 +581,7 @@ Position.AGENT<-function()
         #檢查是否停損
         if(Price.curr <.stopLOSS.price.LONG)
         {
-          msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-          file.create(msg.file)
+          msg.file  <- set.conf(name="close.ALLPOSITION", value = "", dataset = dataset.name)
           OrderNO <- ClosePositionAll()
           
           m_msg(paste("[動作] 執行多頭停損價位 :", Price.buyin.PRE, ">", Price.curr
@@ -524,7 +593,6 @@ Position.AGENT<-function()
           CROSS.Stop.PORT.LINE <-0
           stop.PORT.MAPrice <-0
           stop.PORT.RSIPrice <-0
-          # create.price.dynamic <-0
           
           #
           ENABLE.ByMA <-FALSE
@@ -553,8 +621,7 @@ Position.AGENT<-function()
           )
         )
         {
-          msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-          file.create(msg.file)
+          msg.file  <- set.conf(name="close.ALLPOSITION", value = "", dataset = dataset.name) 
           OrderNO <- ClosePositionAll()
           
           m_msg(paste("[動作] 執行多頭停利價位 :", Price.buyin.PRE, ">", Price.curr
@@ -566,7 +633,6 @@ Position.AGENT<-function()
           CROSS.Stop.PORT.LINE <-0
           stop.PORT.MAPrice <-0 
           stop.PORT.RSIPrice <-0
-          # create.price.dynamic <-0
           #
           ENABLE.ByMA <-FALSE
           Finished.create.positionLONG <-FALSE
@@ -581,8 +647,7 @@ Position.AGENT<-function()
         #檢查是否停損
         if(Price.curr >.stopLOSS.price.SHORT)
         {
-          msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-          file.create(msg.file)
+          msg.file  <- set.conf(name="close.ALLPOSITION", value = "", dataset = dataset.name) 
           OrderNO <- ClosePositionAll()
           
           m_msg(paste("[動作] 執行空頭停損價位 :", Price.curr, "<", Price.buyin.PRE
@@ -594,7 +659,6 @@ Position.AGENT<-function()
           CROSS.Stop.PORT.LINE <-0
           stop.PORT.MAPrice <-0
           stop.PORT.RSIPrice <-0
-          # create.price.dynamic <-0
           
           #
           ENABLE.ByMA <-FALSE
@@ -621,8 +685,7 @@ Position.AGENT<-function()
           )
         )
         {
-          msg.file  <- extra.data(name="close.ALLPOSITION", p.mode = "path") 
-          file.create(msg.file)
+          msg.file  <- set.conf(name="close.ALLPOSITION", value = "", dataset = dataset.name) 
           OrderNO <- ClosePositionAll()
           
           m_msg(paste("[動作] 執行空頭停利價位 :", Price.curr, "<", Price.buyin.PRE
@@ -634,14 +697,13 @@ Position.AGENT<-function()
           CROSS.Stop.PORT.LINE <-0
           stop.PORT.MAPrice <-0
           stop.PORT.RSIPrice <-0
-          # create.price.dynamic <-0
           #
           ENABLE.ByMA <-FALSE
           Finished.create.positionSHORT <-FALSE
           
         }
       }
- 
+      
       #訊息顯示方式切換
       extra.msg1 <- c()
       extra.msg2 <- c()
@@ -652,8 +714,7 @@ Position.AGENT<-function()
         extra.msg2 <-""
       }else{
         extra.msg1 <- paste(
-          switch.create.positionLONG, switch.create.positionSHORT
-          , ENABLE.ByMA, Finished.create.positionLONG, Finished.create.positionSHORT
+          ENABLE.ByMA, Finished.create.positionLONG, Finished.create.positionSHORT
         )   
         extra.msg2 <- paste(
           "<", round(extremes_Line_Upper, digits = 2), round(extremes_Line_lower, digits = 2)
@@ -668,16 +729,12 @@ Position.AGENT<-function()
                   , "+", round(.stopPORT.price.LONG, digits = 2), round(.stopPORT.price.SHORT, digits = 2), "-"
                   , "+", round(.stopLOSS.price.LONG, digits = 2), round(.stopLOSS.price.SHORT, digits = 2), "-"
                   , extra.msg2
+                  ,  switch.create.positionLONG, switch.create.positionSHORT
                   , trans.lang(mode=CODE.SIMU, param=simu), currentbar.num)
       ) 
       
-      #定期刪除價位及指標相關資料檔，以避免拖慢系統速度
-      del.count <-del.count +1
-      if(del.count >=del.count.limited)
-      {
-        del.count =0
-        multi.file.remove(.path = price.path, .pattern = ".csv", .tail_keep = 1)
-      }
+      Price.curr.PRE <-Price.curr
+      
     }#by action="E"
     
   }#by repeat loop

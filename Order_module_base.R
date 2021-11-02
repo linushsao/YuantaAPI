@@ -122,12 +122,17 @@ QueryUnfinished<-function(){
 }
 
 #### 行情 取用 ####
-QueryOHCL<-function(data.path){
-  #system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", n, " ",data.path), stdout = TRUE)
-  .Price.file <- read.csv(data.path, header = FALSE)
-  .Price.tail <- tail(.Price.file, 1)
-  single.Price <- as.numeric(.Price.tail[3])
-  return(single.Price)
+QueryOHCL<-function(data.path)
+{
+  result <-system2(paste0(ExecPath,'tail.exe'),  args = paste0(" -n", 1, " ",data.path), stdout = TRUE)
+  
+  if(length(result) !=0)
+  {
+    result <- strsplit(result, ",")
+    return(result[[1]][3])
+  }else{return(0)}
+  # .Price.tail <-m.tail(data.path)
+  # single.Price <- as.numeric(.Price.tail[3])
 }
 
 #### 緊急平倉 ####

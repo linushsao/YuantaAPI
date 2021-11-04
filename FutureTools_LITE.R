@@ -145,8 +145,8 @@ repeat
   print(paste0("Auto.pos.CLOSE     : ", Auto.positionCLOSE))
   print(paste0("Max.DDM            : ", Max.DDM))
   print(paste0("DayTRADE           : ", Daytrade))
-  print(paste0("Price.buyin        : ", Price.buyin))
-  print(paste0("PCL                : ", PCL)) 
+  print(paste0("Price.buyin        : ", get.conf(name="price.Buyin", dataset = dataset.name)))
+  print(paste0("PCL                : ", get.conf(name="price.PCL", dataset = dataset.name))) 
   print(paste0("switch.stopPORT.MA : ", switch.stopPORT))
   print(paste0("switch.stopPORT.RSI: ", switch.stopPORT_RSI))
   
@@ -304,6 +304,126 @@ repeat
              
            },
            
+           # "MPLAUNCH" ={
+           #   
+           #   m.launch.price <- as.numeric(readline("PLs. ENTER Launch Price:"))
+           #   m.next.action <- readline("PLs. ENTER NEXT ACTION(7/9) :")
+           #   
+           # },
+           
+           #
+           "MPLA" ={
+             
+             m.launch.price <- (readline("PLs. ENTER Launch Price:"))
+             m.next.action <- readline("PLs. ENTER NEXT ACTION(7/9/0) :")
+             
+             set.conf(name="m.launch.price"
+                      , value = m.launch.price
+                      , dataset = dataset.name)
+             set.conf(name="m.next.action"
+                      , value = m.next.action
+                      , dataset = dataset.name)
+             
+           },
+           
+           #價位啟動停利
+           "PLAUNCH" ={
+             
+             while(TRUE)
+             {
+               m.launch.price <- as.numeric(readline("PLs. ENTER Launch Price:"))
+               m.next.action <- readline("PLs. ENTER NEXT ACTION(7/9/4/6/0) :")
+               #檢查錯誤
+               cond1 <-(m.launch.price >0)
+               cond2 <-m.next.action %in% c("7", "9", "4", "6", "0")
+               if(!cond1 | !cond2)
+               {m_msg(paste("Wrong Param :", m.launch.price, m.next.action))
+                 }else{break}
+             }
+
+             m.start.price <-as.numeric(Price.current())
+             
+             while(TRUE)
+             {
+               
+               #檢查停止
+               if(!is.null(get.conf(name="DAGS", dataset = dataset.name)))
+               {
+                 rm.conf(name="DAGS", dataset = dataset.name)
+                 beep(sound = 2)        
+                 break
+               }
+               
+               #檢查m.launch.price
+               if(!is.null(get.conf(name="m.launch.price", dataset = dataset.name)))
+               {
+                 m.launch.price <-as.numeric(get.conf(name="m.launch.price"
+                                                      , dataset = dataset.name))
+                 m_msg(paste0("[設定] 切換m.launch.price設定 :"
+                              , m.launch.price))
+                 rm.conf(name="m.launch.price", dataset = dataset.name)
+                 beep(sound = 2)        
+               } 
+               
+               #檢查m.next.action
+               if(!is.null(get.conf(name="m.next.action", dataset = dataset.name)))
+               {
+                 m.next.action <-get.conf(name="m.next.action"
+                                          , dataset = dataset.name)
+                 m_msg(paste0("[設定] 切換m.next.action設定 :"
+                              , m.next.action))
+                 rm.conf(name="m.next.action", dataset = dataset.name)
+                 beep(sound = 2)        
+               }  
+               
+               
+               #切換模擬/真實設定
+               m.REMOTE.SWITCH.SIMULATION <-get.conf(name = "REMOTE.SWITCH.SIMULATION", dataset = dataset.name)
+               if(!is.null(m.REMOTE.SWITCH.SIMULATION))
+               {
+                 if(as.logical(m.REMOTE.SWITCH.SIMULATION) !=simu)
+                 {
+                   simu <-TF.Switch(simu)
+                   m_msg(paste0("[設定] 切換模擬/真實設定 :"
+                                , trans.lang(mode=CODE.SIMU, param = simu)))
+                   beep(sound = 2)        
+                 }
+                 rm.conf(name="REMOTE.SWITCH.SIMULATION", dataset = dataset.name)
+               } 
+               
+               price.curr <-Price.current()
+               #Cross Over | Cross Under
+               cond1 <- (m.start.price <m.launch.price
+                         & price.curr >m.launch.price)
+               cond2 <- (m.start.price >m.launch.price
+                         & price.curr <m.launch.price)
+               #觸發後續動作
+               if(cond1 | cond2)
+               {
+                 if(!simu)
+                 {
+                   next.step =m.next.action
+                 }else{
+                   m_msg(paste0("[模擬] 觸發後續動作 :"
+                                , m.next.action))
+                   next.step =""
+                 }
+                 beep(sound = 2)
+                 break
+               }
+               
+               m.msg <-paste0("[訊息] 目前價位 :", price.curr
+                              , " ，啟動目標價位 :", m.launch.price
+                              , " ，觸發後續動作代碼 :", m.next.action
+                              , " ", trans.lang(mode=CODE.SIMU, param = simu))
+               m_msg(info=m.msg)
+               
+               Sys.sleep(0.5)
+               
+             }
+             
+           },
+           
            "7" ={
              # {
              source("C:/Users/linus/Documents/Project/6.APITols/Order_module_POSITION.R")
@@ -322,7 +442,7 @@ repeat
              
              stop.Portfolio.lite()
              rm(stop.Portfolio.lite)
-   
+             
            }, 
            
            OM ={result <- Place.OrderMKT()},
@@ -394,6 +514,14 @@ repeat
                
              }
              
+             
+           },
+           
+           
+           RASL ={
+             set.conf(name="AUTO.STOPLOSS"
+                      , value ="EMPTY"
+                      , dataset =dataset.name)
              
            },
            

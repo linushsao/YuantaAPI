@@ -578,7 +578,7 @@ trans.lang <-function(mode, param)
           stop.Portfolio.MODE ={
             if(param =="1"){return("RSI熱區平倉")}
             if(param =="2"){return("MA回檔平倉")}
-          }
+          },
           AUTO.STOPLOSS ={
             if(param) {return("主動停損開啟")}
             if(!param){return("主動停損關閉")}
@@ -587,7 +587,6 @@ trans.lang <-function(mode, param)
   )
 }
 
-AUTO.STOPLOSS
 m.tail <-function(path, .tail.num=1, .header = FALSE)
 {
   price.file <- read.csv(path, header = .header, fileEncoding = "big5")

@@ -230,7 +230,6 @@ Position.AGENT<-function()
       if(is.null(get.conf(name = "price.Buyin", dataset = dataset.name)) &
          !is.null(get.conf(name = "price.PCL", dataset = dataset.name)))
       {
-        m_msg("MAR 2")
         
         m_msg(paste0("[訊息] 已執行建倉但未確認結果"))
         
@@ -441,7 +440,8 @@ Position.AGENT<-function()
         if(as.logical(m.REMOTE.SWITCH.SIMULATION) !=simu)
         {
           simu <-TF.Switch(simu)
-          m_msg(paste("[設定] 切換模擬/真實設定"))
+          m_msg(paste0("[設定] 切換模擬/真實設定 :"
+                       , trans.lang(mode=CODE.SIMU, param = simu)))
           beep(sound = 2)        
         }
         
